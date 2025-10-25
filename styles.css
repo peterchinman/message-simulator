@@ -1,0 +1,265 @@
+@import "./reset.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/*
+Q: WTF are these sizing calcs with 14 in the denominator??
+
+A: I designed the message sipper to have whole number pixel sizes & offsets at 14px rem. `calc(_rem / 14)` is how you achieve a value that references a specific pixel value at that scale, while also being dynamic with rem size.
+*/
+
+:root {
+  --font-size: 14px;
+  font-size: var(--font-size);
+
+  --native-sender-color: #1285fe;
+  --recipient-color: #e6e5ec;
+
+  --message-spacing: calc(8rem / 14);
+  --consecutive-message-spacing: calc(3rem / 14);
+
+  --border-radius: 0.8rem;
+
+  --input-border-color: #ddddde;
+  --dropdown-background: #ededed;
+  --dropdown-border: #b3b3b3;
+
+  --message-padding-inline: calc(8rem / 14);
+  --message-padding-block: calc(4rem / 14);
+  --message-tail-offset: calc(-1 * 4.5rem / 14);
+
+  --single-line-message-height: calc(1lh + 2 * var(--message-padding-block));
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  min-height: 100vh;
+
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.window {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 100%;
+  width: 100%;
+  max-width: 80ch;
+  min-width: 375px;
+
+  line-height: 1.2;
+}
+
+.message-container {
+  display: flex;
+  flex-direction: column;
+  padding-inline: 1.5rem;
+  overflow-y: scroll;
+  padding-top: var(--message-spacing);
+}
+.message {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding-inline: var(--message-padding-inline);
+  padding-block: var(--message-padding-block);
+  border-radius: var(--border-radius);
+
+  max-width: 66%;
+
+  &.self {
+    background-color: var(--native-sender-color);
+    color: white;
+    fill: var(--native-sender-color);
+    align-self: end;
+    justify-content: flex-end;
+
+    .message-tail {
+      right: var(--message-tail-offset);
+    }
+  }
+
+  &.other {
+    background-color: var(--recipient-color);
+    color: black;
+    fill: var(--recipient-color);
+    align-self: start;
+
+    svg {
+      transform: scale(-1, 1);
+      left: var(--message-tail-offset);
+    }
+  }
+
+  &:not(:first-child) {
+    margin-top: var(--message-spacing);
+  }
+
+  &.self:has(+ .self),
+  &.other:has(+ .other) {
+    svg {
+      display: none;
+    }
+  }
+
+  &.self + .self,
+  &.other + .other {
+    margin-top: var(--consecutive-message-spacing);
+  }
+
+  svg {
+    position: absolute;
+    bottom: 0;
+    width: calc(10.5rem / 14);
+    height: calc(14rem / 14);
+  }
+}
+
+.bottom-area {
+  position: absolute;
+  bottom: 0;
+  display: flex;
+  width: 100%;
+  padding-inline: 1.3rem;
+  padding-block: 1rem;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  background: hsl(0 0 100 / 0.7);
+  backdrop-filter: blur(20px);
+}
+
+.input-container {
+  justify-content: stretch;
+  border: 1px solid var(--input-border-color);
+  padding-inline: var(--message-padding-inline);
+  padding-block: var(--message-padding-block);
+  border-radius: var(--border-radius);
+  flex-grow: 1;
+
+  display: flex;
+  align-items: center;
+
+  background: hsl(0 0 100 / 0.4);
+
+  .input {
+    all: unset;
+    max-width: 100%;
+    min-height: 1lh;
+    width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
+    overflow-wrap: break-word;
+  }
+}
+
+.sender-switch-container {
+  position: relative;
+  flex-shrink: 0;
+  width: calc(2lh + var(--message-padding-block) * 2);
+  height: calc(1lh + var(--message-padding-block) * 2);
+  background-color: var(--recipient-color);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color 0.3s ease-in-out;
+
+  &:has(input:checked) {
+    background-color: var(--native-sender-color);
+  }
+
+  input {
+    opacity: 0;
+    height: 0;
+    width: 0;
+  }
+
+  .switch-thumb {
+    position: absolute;
+    left: var(--message-padding-block);
+    top: var(--message-padding-block);
+    width: 1lh;
+    height: 1lh;
+    background-color: white;
+    border-radius: 50%;
+    transition: left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+
+  input:checked + .switch-thumb {
+    left: calc(var(--message-padding-block) + 1lh);
+  }
+}
+
+.options-container {
+  position: relative;
+  width: var(--single-line-message-height);
+  height: var(--single-line-message-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: color-mix(in srgb, var(--recipient-color) 80%, transparent);
+
+  border-radius: 100%;
+
+  color: #7e7f86;
+
+  input {
+    position: absolute;
+    opacity: 0;
+    height: 0;
+    width: 0;
+  }
+
+  .options-menu {
+    display: none;
+    position: absolute;
+    bottom: var(--single-line-message-height);
+    left: 0;
+    min-width: max-content;
+    color: black;
+
+    padding-inline: 0.3rem;
+    padding-block: 0.3rem;
+
+    background-color: var(--dropdown-background);
+    border: 1px solid var(--dropdown-border);
+    border-radius: 0.4rem;
+
+    filter: drop-shadow(0 0 0.7rem rgba(0, 0, 0, 0.3));
+
+    .options-item {
+      padding-inline: 0.6rem;
+      padding-block: 0.3rem;
+      border-radius: 0.3rem;
+
+      &:first-child {
+      }
+    }
+
+    .options-item:hover {
+      color: white;
+      background-color: color-mix(
+        in oklab,
+        var(--dropdown-background) 20%,
+        var(--native-sender-color) 80%
+      );
+    }
+  }
+
+  input:checked + .options-menu {
+    display: block;
+  }
+}

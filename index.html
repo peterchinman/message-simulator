@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Basic HTML/CSS/JS site skeleton" />
+    <title>Message Simulator</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <svg style="display: none;">
+  <defs>
+    <symbol id="message-tail" viewBox="0 0 21 28">
+      <path d="M21.006,27.636C21.02,27.651 11.155,30.269 1.302,21.384C0.051,20.256 0.065,15.626 0.006,14.004C-0.253,6.917 8.514,-0.156 11.953,0.003L11.953,13.18C11.953,17.992 12.717,23.841 21.006,27.636Z" />
+    </symbol>
+  </defs>
+</svg>
+
+<div class="window">
+  <div class="message-container">
+  </div>
+  <div class="bottom-area">
+    <label class="options-container">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="14" height="14">
+        <path d="M 50 20 L 50 80 M 20 50 L 80 50" stroke="currentColor" stroke-width="10" stroke-linecap="round" fill="none" />
+      </svg>
+      <input type="checkbox" id="options-button">
+      <ul class="options-menu">
+        <li class="options-item" id="clearChat">Clear chat</li>
+        <li class="options-item" id="exportChat">Export chat</li>
+        <li class="options-item" id="importChat">Import chat</li>
+      </ul>
+    </label>
+    <div class="input-container input-sizer stacked">
+      <textarea class="input" rows="1" placeholder=""></textarea>
+    </div>
+    <label class="sender-switch-container">
+      <input type="checkbox" id="senderSwitch" checked>
+      <div class="switch-thumb"></div>
+    </label>
+  </div>
+</div>
+
+    <script src="./script.js" defer></script>
+  </body>
+</html>
+
+
