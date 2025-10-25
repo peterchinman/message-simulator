@@ -50,145 +50,29 @@ class ChatApp {
   constructor() {
     this.messages = [
       {
-        message: "Hey! Are you still up for that camping trip this weekend?",
-        sender: "self"
-      },
-      {
-        message: "I was looking at the campsite and it looks incredible",
-        sender: "self"
-      },
-      {
-        message: "There's a lake right next to it for swimming",
-        sender: "self"
-      },
-      {
-        message: "Absolutely! I've been looking forward to it all week",
-        sender: "other"
-      },
-      { message: "A lake? Even better than I thought", sender: "other" },
-      {
-        message:
-          "Perfect! I was thinking we could leave Friday evening around 6pm",
-        sender: "self"
-      },
-      { message: "That should get us there before dark", sender: "self" },
-      {
-        message:
-          "That works for me. Should I bring my tent or do you have one big enough for both of us?",
+        message: "Hi",
         sender: "other"
       },
       {
-        message:
-          "I have a two-person tent we can use. But bring a sleeping bag and pad",
-        sender: "self"
-      },
-      {
-        message: "Got it. What about food? Should we meal prep or cook there?",
+        message: "Hello",
         sender: "other"
       },
       {
-        message:
-          "Let's do a mix. I can bring stuff for breakfast and we can cook dinner over the fire",
-        sender: "self"
-      },
-      {
-        message: "Maybe pancakes and bacon for Saturday morning?",
-        sender: "self"
-      },
-      { message: "And I have everything we need for s'mores", sender: "self" },
-      {
-        message: "Sounds amazing. I'll grab snacks and lunch stuff then",
-        sender: "other"
-      },
-      { message: "I can bring sandwich stuff and some chips", sender: "other" },
-      {
-        message: "Oh and trail mix, definitely need trail mix",
-        sender: "other"
-      },
-      { message: "Yes! Trail mix is essential", sender: "self" },
-      {
-        message:
-          "Oh and don't forget a headlamp. The trails can get pretty dark",
-        sender: "self"
-      },
-      {
-        message: "Good call. Is the weather supposed to be decent?",
+        message: "I had a dream that I was building an iMessage simulator",
         sender: "other"
       },
       {
-        message:
-          "Checked this morning - clear skies and mid 60s during the day, low 40s at night",
-        sender: "self"
-      },
-      { message: "So we'll need warm layers for the evening", sender: "self" },
-      {
-        message: "Perfect camping weather! I'm so ready for this",
+        message: "When I woke I decided to build it",
         sender: "other"
       },
       {
-        message: "Same here. Work has been brutal lately, need this escape",
-        sender: "self"
-      },
-      { message: "My boss has been on my case all week", sender: "self" },
-      {
-        message: "I just need to disconnect for a couple days",
-        sender: "self"
-      },
-      {
-        message: "Tell me about it. Nothing but meetings and deadlines",
+        message: "Flip the switch beside the input to change senders",
         sender: "other"
       },
       {
-        message: "I had three back-to-back meetings yesterday",
+        message: "Use the plus menu to clear, export, and import",
         sender: "other"
       },
-      { message: "Didn't even have time for lunch", sender: "other" },
-      {
-        message:
-          "That's rough. Well, in two days we'll be sitting by a campfire with no cell service",
-        sender: "self"
-      },
-      { message: "Just us, nature, and good food", sender: "self" },
-      { message: "That's the dream right there", sender: "other" },
-      {
-        message: "Should we invite anyone else or keep it just us two?",
-        sender: "other"
-      },
-      {
-        message: "I think just us is good. More peaceful that way",
-        sender: "self"
-      },
-      { message: "Plus easier to coordinate", sender: "self" },
-      {
-        message: "Agreed. Small group is always better for camping",
-        sender: "other"
-      },
-      {
-        message:
-          "Alright, I'm gonna start packing tonight so I don't forget anything",
-        sender: "self"
-      },
-      {
-        message:
-          "Smart move. I always forget something when I pack last minute",
-        sender: "other"
-      },
-      {
-        message: "One time I forgot socks on a whole weekend trip",
-        sender: "other"
-      },
-      { message: "Had to wear the same pair the entire time", sender: "other" },
-      { message: "Oh no! That's terrible haha", sender: "self" },
-      {
-        message: "I once forgot a pillow and had to use my jacket",
-        sender: "self"
-      },
-      { message: "Never again", sender: "self" },
-      {
-        message: "Lesson learned! Okay I'll text you Friday afternoon",
-        sender: "other"
-      },
-      { message: "Sounds good. See you Friday!", sender: "self" }
     ];
 
     this.elements = {
