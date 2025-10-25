@@ -79,7 +79,9 @@ class ChatApp {
       messageContainer: document.querySelector(".message-container"),
       bottomArea: document.querySelector(".bottom-area"),
       input: document.querySelector(".input-container .input"),
-      senderSwitch: document.querySelector("#senderSwitch")
+      senderSwitch: document.querySelector("#senderSwitch"),
+      optionsContainer: document.querySelector(".options-container"),
+      optionsButton: document.querySelector("#options-button")
     };
 
     this.init();
@@ -134,6 +136,17 @@ class ChatApp {
           this._importChat();
         }
       });
+    });
+
+    // Close options menu when clicking outside of it
+    document.addEventListener("click", (event) => {
+      const optionsButton = this.elements.optionsButton;
+      const optionsContainer = this.elements.optionsContainer;
+      if (!optionsButton || !optionsContainer) return;
+      if (!optionsButton.checked) return;
+      if (!optionsContainer.contains(event.target)) {
+        optionsButton.checked = false;
+      }
     });
   }
 
