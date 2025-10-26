@@ -90,7 +90,7 @@ class ChatApp {
         sender: "other"
       },
       {
-        message: "When I woke I decided to build it",
+        message: "When I woke up I decided that I should build it",
         sender: "other"
       },
       {
