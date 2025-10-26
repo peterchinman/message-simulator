@@ -13,7 +13,7 @@ A: I designed the message sipper to have whole number pixel sizes & offsets at 1
 */
 
 :root {
-  --font-size: 13px;
+  --font-size: 14px;
   font-size: var(--font-size);
 
   --padding-inline: 1.5rem;
@@ -39,7 +39,7 @@ A: I designed the message sipper to have whole number pixel sizes & offsets at 1
 
 @media (max-width: 480px) {
   :root {
-    --font-size: 14px;
+    --font-size: 16px;
     --padding-inline: .9rem;
     --message-padding-inline: calc(10rem / 14);
     --message-padding-block: calc(6rem / 14);
