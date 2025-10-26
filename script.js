@@ -137,10 +137,10 @@ class ChatApp {
 
     MessageShrinkWrap.init();
 
-    // Sometimes, weird message wrapping happens... this is a hack to try to make sure it gets set correctly.
+    // Sometimes, weird message wrapping happens on page load... this is a hack to try to make sure it gets set correctly.
     setTimeout(() => {
       MessageShrinkWrap.shrinkWrapAll();
-    }, 0);
+    }, 50);
 
     const initialBottomHeight = this.elements.bottomArea.getBoundingClientRect()
       .height;
