@@ -1,3 +1,5 @@
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
 const MessageShrinkWrap = {
   config: {
     messageSelector: ".message",
@@ -107,12 +109,13 @@ class ChatApp {
       this._handleInputResize(event)
     );
 
+    // When the bottom area is resized, add padding to the message container, so that the bottom area never hides messages.
     const inputObserver = new ResizeObserver((entries) => {
       for (let entry of entries) {
         const target = entry.target;
         const height = target.getBoundingClientRect().height;
 
-        //         Check if near bottom before adding padding
+        // Check if near bottom before adding padding
         const container = this.elements.messageContainer;
         const isNearBottom = this._isNearBottom();
 
@@ -125,6 +128,33 @@ class ChatApp {
     });
     inputObserver.observe(this.elements.bottomArea);
 
+    // Disgusting work-around to deal with iOS keyboard issue.
+    if (isIOS) {
+      let previousViewportHeight = visualViewport.height;
+      visualViewport.addEventListener('resize', () => {
+        if (!window.visualViewport) {
+          return
+        }
+
+        const newViewportHeight = window.visualViewport.height;
+
+        if (newViewportHeight < previousViewportHeight) {
+          const vh = newViewportHeight * .01;
+          document.documentElement.style.setProperty('--vh', `${vh}px`);
+
+          window.scrollTo(0, 0);
+          this.elements.messageContainer.scrollTo(0, this.elements.messageContainer.scrollHeight);
+        }
+
+        previousViewportHeight = newViewportHeight;
+      })
+      // When input is being blurred, immediately change --vh unit. If we try to do this above on viewport resize, we have to wait for the keyboard to finish hiding, which feels jankier. 
+      this.elements.input.addEventListener('blur', () => {
+        document.documentElement.style.setProperty('--vh', '1dvh');
+      });
+    }
+
+    // Handle options menu clicks
     document.querySelectorAll(".options-item").forEach((item) => {
       item.addEventListener("click", (e) => {
         const id = e.target.id;

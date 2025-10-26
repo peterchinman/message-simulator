@@ -44,20 +44,13 @@ A: I designed the message sipper to have whole number pixel sizes & offsets at 1
   }
 }
 
-html,
 body {
-  height: 100%;
-}
-
-body {
-  min-height: 100vh;
+  height: calc(var(--vh, 1dvh) * 100);
 
   font-family: -apple-system, BlinkMacSystemFont, sans-serif;
 
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
 }
 
 .window {
@@ -80,6 +73,7 @@ body {
   overflow-y: scroll;
   padding-top: var(--message-spacing);
 }
+
 .message {
   position: relative;
   display: flex;
@@ -253,9 +247,6 @@ body {
       padding-inline: 0.6rem;
       padding-block: 0.3rem;
       border-radius: 0.3rem;
-
-      &:first-child {
-      }
     }
 
     .options-item:hover {
