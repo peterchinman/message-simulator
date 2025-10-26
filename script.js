@@ -19,6 +19,9 @@ const setBodyTouchState = (() => {
   if (touch) document.body.classList.add('touch-screen');
 })();
 
+const CHAT_STORAGE_KEY = 'message-simulator:messages';
+const CURRENT_SCHEMA_VERSION = 1; // v0: raw array; v1: wrapper with optional ISO timestamps
+
 const MessageShrinkWrap = {
   config: {
     messageSelector: ".message",
@@ -111,6 +114,8 @@ class ChatApp {
         sender: "other"
       },
     ];
+
+    this._loadMessages();
 
     this.elements = {
       messageContainer: document.querySelector(".message-container"),
@@ -250,8 +255,10 @@ class ChatApp {
 
       if (messageText.trim().length > 0) {
         const message = {
+          id: this._generateId(),
           message: messageText,
-          sender: isSender ? "self" : "other"
+          sender: isSender ? "self" : "other",
+          timestamp: new Date().toISOString()
         };
         this.messages.push(message);
         this._renderMessage(message.message, message.sender);
@@ -260,6 +267,8 @@ class ChatApp {
         this.elements.input.style.height = "auto";
 
         MessageShrinkWrap.handleResize();
+
+        this._saveMessages();
 
         this._scrollToBottom("smooth");
       }
@@ -315,10 +324,89 @@ class ChatApp {
     return messageDiv;
   }
 
+  _saveMessages() {
+    try {
+      const payload = { version: CURRENT_SCHEMA_VERSION, messages: this.messages };
+      localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(payload));
+    } catch (error) {
+      // Swallow write errors (e.g., storage full or disabled)
+    }
+  }
+
+  _loadMessages() {
+    try {
+      const stored = localStorage.getItem(CHAT_STORAGE_KEY);
+      if (!stored) return;
+      const { messages, migrated } = this._migrateStoredData(JSON.parse(stored));
+      if (Array.isArray(messages)) {
+        this.messages = messages;
+        if (migrated) this._saveMessages();
+      }
+    } catch (error) {
+      alert('Error loading chat: ' + error.message);
+    }
+  }
+
+  _migrateStoredData(parsed) {
+    // Returns { messages, migrated }
+    let migrated = false;
+
+    // v1 only: object wrapper with optional ISO timestamps
+    if (parsed && typeof parsed === 'object' && parsed.version === CURRENT_SCHEMA_VERSION) {
+      let messages = Array.isArray(parsed.messages) ? parsed.messages : [];
+      let changed = false;
+      messages = messages.filter(this._isValidMessage);
+      if (this._ensureMessageIds(messages)) changed = true;
+      migrated = migrated || changed;
+      return { messages, migrated };
+    }
+
+    return { messages: null, migrated };
+  }
+
+  _isValidMessage(item) {
+    if (!item || typeof item !== 'object') return false;
+    const { message, sender } = item;
+    if (typeof message !== 'string') return false;
+    if (sender !== 'self' && sender !== 'other') return false;
+    if (Object.prototype.hasOwnProperty.call(item, 'timestamp')) {
+      const t = item.timestamp;
+      if (!(typeof t === 'string' || typeof t === 'number')) return false;
+    }
+    if (Object.prototype.hasOwnProperty.call(item, 'id')) {
+      if (typeof item.id !== 'string' || item.id.length === 0) return false;
+    }
+    return true;
+  }
+
+  _generateId() {
+    try {
+      if (window && window.crypto && typeof window.crypto.randomUUID === 'function') {
+        return window.crypto.randomUUID();
+      }
+    } catch (_) {
+      // fall through to fallback
+    }
+    return 'msg_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
+  }
+
+  _ensureMessageIds(messages) {
+    let changed = false;
+    for (let i = 0; i < messages.length; i++) {
+      const m = messages[i];
+      if (m && (m.id === undefined || m.id === null || m.id === '')) {
+        m.id = this._generateId();
+        changed = true;
+      }
+    }
+    return changed;
+  }
+
   _clearChat() {
   if (confirm('Are you sure you want to clear all messages?')) {
     this.messages = [];
     this.elements.messageContainer.innerHTML = '';
+    this._saveMessages();
   }
 }
 
@@ -343,11 +431,20 @@ _importChat() {
       const reader = new FileReader();
       reader.onload = (event) => {
         try {
-          const importedMessages = JSON.parse(event.target.result);
+          const parsed = JSON.parse(event.target.result);
+          let importedMessages = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.messages) ? parsed.messages : []);
+          importedMessages = importedMessages.map((m) => {
+            if (m && typeof m.timestamp === 'number') {
+              return { ...m, timestamp: new Date(m.timestamp).toISOString() };
+            }
+            return m;
+          }).filter(this._isValidMessage);
+          this._ensureMessageIds(importedMessages);
           this.messages = importedMessages;
           this.elements.messageContainer.innerHTML = '';
           this._renderInitialMessages();
           MessageShrinkWrap.handleResize();
+          this._saveMessages();
           this._scrollToBottom();
         } catch (error) {
           alert('Error importing chat: Invalid JSON file');
