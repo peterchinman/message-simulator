@@ -24,7 +24,7 @@ A: I designed the message sipper to have whole number pixel sizes & offsets at 1
   --message-spacing: calc(8rem / 14);
   --consecutive-message-spacing: calc(3rem / 14);
 
-  --border-radius: 0.8rem;
+  --border-radius: 1rem;
 
   --input-border-color: #ddddde;
   --dropdown-background: #ededed;
@@ -41,6 +41,10 @@ A: I designed the message sipper to have whole number pixel sizes & offsets at 1
   :root {
     --font-size: 14px;
     --padding-inline: .9rem;
+    --message-padding-inline: calc(10rem / 14);
+    --message-padding-block: calc(6rem / 14);
+
+    
   }
 }
 
@@ -51,6 +55,7 @@ body {
 
   display: flex;
   flex-direction: column;
+  align-items: center;
 }
 
 .window {
@@ -133,6 +138,7 @@ body {
 }
 
 .bottom-area {
+  --tight-padding: calc(4rem / 14);
   position: absolute;
   bottom: 0;
   display: flex;
@@ -140,8 +146,8 @@ body {
   padding-inline: var(--padding-inline);
   padding-block: 1rem;
   justify-content: space-between;
-  align-items: center;
-  gap: 0.75rem;
+  align-items: flex-end;
+  gap: 0.5rem;
   background: hsl(0 0 100 / 0.7);
   backdrop-filter: blur(20px);
 }
@@ -149,9 +155,9 @@ body {
 .input-container {
   justify-content: stretch;
   border: 1px solid var(--input-border-color);
-  padding-inline: var(--message-padding-inline);
-  padding-block: var(--message-padding-block);
-  border-radius: var(--border-radius);
+  padding-left: var(--message-padding-inline);
+  padding-right: var(--tight-padding);
+  border-radius: 1.3rem;
   flex-grow: 1;
 
   display: flex;
@@ -167,6 +173,37 @@ body {
     overflow: hidden;
     box-sizing: border-box;
     overflow-wrap: break-word;
+    margin-block: var(--message-padding-block);
+  }
+
+  .send-button {
+    all: unset;
+    align-self: flex-end;
+    cursor: pointer;
+    color: white;
+    background-color: var(--native-sender-color);
+    min-height: calc(1lh + 2 * var(--message-padding-block) - 2 * var(--tight-padding));
+    min-width: calc(1lh + 2 * var(--message-padding-block) - 2 * var(--tight-padding));
+    border-radius: 50%;
+    margin-block: var(--tight-padding);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    svg {
+      height: calc(14rem / 14);
+      width: calc(14rem / 14);
+    }
+    /* padding: 0.3rem; */
+  }
+
+  .input:placeholder-shown + .send-button {
+    display: none;
+  }
+
+  /* Hide send button on non-touch devices */
+  body:not(.touch-screen) & .send-button {
+    display: none;
   }
 }
 
@@ -208,13 +245,13 @@ body {
 
 .options-container {
   position: relative;
-  width: var(--single-line-message-height);
-  height: var(--single-line-message-height);
+  min-width: var(--single-line-message-height);
+  min-height: var(--single-line-message-height);
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: color-mix(in srgb, var(--recipient-color) 80%, transparent);
-
+  border: 1px solid transparent;
   border-radius: 100%;
 
   color: #7e7f86;

@@ -1,5 +1,24 @@
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
+const setBodyTouchState = (() => {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+
+  let touch = false;
+
+  if (typeof navigator.maxTouchPoints === 'number') {
+    touch = navigator.maxTouchPoints > 0;
+  } else if (typeof navigator.msMaxTouchPoints === 'number') {
+    touch = navigator.msMaxTouchPoints > 0;
+  } else if (typeof window.matchMedia === 'function') {
+    const mq = window.matchMedia('(pointer: coarse)');
+    touch = mq && mq.media === '(pointer: coarse)' && mq.matches;
+  } else if ('ontouchstart' in window) {
+    touch = true;
+  }
+
+  if (touch) document.body.classList.add('touch-screen');
+})();
+
 const MessageShrinkWrap = {
   config: {
     messageSelector: ".message",
@@ -97,9 +116,11 @@ class ChatApp {
       messageContainer: document.querySelector(".message-container"),
       bottomArea: document.querySelector(".bottom-area"),
       input: document.querySelector(".input-container .input"),
+      senderSwitchContainer: document.querySelector(".sender-switch-container"),
       senderSwitch: document.querySelector("#senderSwitch"),
       optionsContainer: document.querySelector(".options-container"),
-      optionsButton: document.querySelector("#options-button")
+      optionsButton: document.querySelector("#options-button"),
+      sendButton: document.querySelector(".send-button")
     };
 
     this.init();
@@ -124,6 +145,16 @@ class ChatApp {
     this.elements.input.addEventListener("input", (event) =>
       this._handleInputResize(event)
     );
+
+    this.elements.senderSwitchContainer.addEventListener("pointerdown", (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+    });
+
+    this.elements.optionsContainer.addEventListener("pointerdown", (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+    });
 
     // When the bottom area is resized, add padding to the message container, so that the bottom area never hides messages.
     const inputObserver = new ResizeObserver((entries) => {
@@ -168,6 +199,17 @@ class ChatApp {
       this.elements.input.addEventListener('blur', () => {
         document.documentElement.style.setProperty('--vh', '1dvh');
       });
+
+      const sendNow = (event) => {
+        event.preventDefault();
+        this._handleSendMessage(event);
+      };
+
+      this.elements.sendButton.addEventListener("pointerdown", (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        this._handleSendMessage(event);
+      });
     }
 
     // Handle options menu clicks
@@ -201,7 +243,7 @@ class ChatApp {
   }
 
   _handleSendMessage(event) {
-    if (event.key === "Enter" && !event.shiftKey) {
+    if ((event.key === "Enter" && !event.shiftKey) || (event.type === "pointerdown")) {
       event.preventDefault();
       const messageText = this.elements.input.value;
       const isSender = this.elements.senderSwitch.checked;
