@@ -180,7 +180,7 @@ class ChatApp {
     });
     inputObserver.observe(this.elements.bottomArea);
 
-    // Disgusting work-around to deal with iOS keyboard issue.
+    // Disgusting work-around to deal with iOS virtual keyboard issue.
     if (isIOS) {
       let previousViewportHeight = visualViewport.height;
       visualViewport.addEventListener('resize', () => {
@@ -194,8 +194,12 @@ class ChatApp {
           const vh = newViewportHeight * .01;
           document.documentElement.style.setProperty('--vh', `${vh}px`);
 
-          window.scrollTo(0, 0);
-          this.elements.messageContainer.scrollTo(0, this.elements.messageContainer.scrollHeight);
+          // Scroll sometimes wouldn't fire on time, but only on actual phone, not on simulator, moving it to next frame to try to fix
+          setTimeout(() => {
+            window.scrollTo(0, 0);
+            this.elements.messageContainer.scrollTo(0, this.elements.messageContainer.scrollHeight);
+          })
+          
         }
 
         previousViewportHeight = newViewportHeight;
