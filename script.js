@@ -62,7 +62,21 @@ const MessageShrinkWrap = {
     };
   },
   init() {
-    this.shrinkWrapAll();
+    const run = () => {
+      this.unwrapAll();
+      requestAnimationFrame(() => this.shrinkWrapAll());
+    };
+
+    if (document.readyState === 'complete') {
+      run();
+    } else {
+      window.addEventListener('load', run, { once: true });
+    }
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(run);
+    }
+
     window.addEventListener(
       "resize",
       this.debounce(() => this.handleResize(), this.config.debounceDelay)
@@ -136,11 +150,6 @@ class ChatApp {
     this._bindEvents();
 
     MessageShrinkWrap.init();
-
-    // Sometimes, weird message wrapping happens on page load... this is a hack to try to make sure it gets set correctly.
-    setTimeout(() => {
-      MessageShrinkWrap.shrinkWrapAll();
-    }, 50);
 
     const initialBottomHeight = this.elements.bottomArea.getBoundingClientRect()
       .height;
