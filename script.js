@@ -200,6 +200,8 @@ class ChatApp {
             this.elements.messageContainer.scrollTo(0, this.elements.messageContainer.scrollHeight);
           })
           
+        } else {
+          document.documentElement.style.setProperty('--vh', '1dvh');
         }
 
         previousViewportHeight = newViewportHeight;
