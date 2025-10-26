@@ -60,6 +60,10 @@ class ChatApp {
         sender: "other"
       },
       {
+        message: "What is this?",
+        sender: "self"
+      },
+      {
         message: "I had a dream that I was building an iMessage simulator",
         sender: "other"
       },
@@ -68,11 +72,23 @@ class ChatApp {
         sender: "other"
       },
       {
+        message: "What do I do with it?",
+        sender: "self"
+      },
+      {
         message: "Flip the switch beside the input to change senders",
         sender: "other"
       },
       {
         message: "Use the plus menu to clear, export, and import",
+        sender: "other"
+      },
+      {
+        message: "No like, what is it for?",
+        sender: "self"
+      },
+      {
+        message: "Lol idk",
         sender: "other"
       },
     ];
