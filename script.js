@@ -134,7 +134,13 @@ class ChatApp {
   init() {
     this._renderInitialMessages();
     this._bindEvents();
+
     MessageShrinkWrap.init();
+
+    // Sometimes, weird message wrapping happens... this is a hack to try to make sure it gets set correctly.
+    setTimeout(() => {
+      MessageShrinkWrap.shrinkWrapAll();
+    }, 0);
 
     const initialBottomHeight = this.elements.bottomArea.getBoundingClientRect()
       .height;
