@@ -237,6 +237,13 @@ class ChatApp {
         this._handleSendMessage(event);
       });
     }
+    if (!isIOS) {
+      this.elements.sendButton.addEventListener("pointerdown", (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        this._handleSendMessage(event);
+      });
+    }
 
     // Handle options menu clicks
     document.querySelectorAll(".options-item").forEach((item) => {
