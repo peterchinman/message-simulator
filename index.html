@@ -6,46 +6,30 @@
     <meta name="description" content="Basic HTML/CSS/JS site skeleton" />
     <title>Message Simulator</title>
     <link rel="stylesheet" href="./styles.css" />
+    <style>
+      .split {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        height: calc(var(--vh, 1dvh) * 100);
+        padding: 8px;
+        box-sizing: border-box;
+      }
+      @media (max-width: 900px) {
+        .split { grid-template-columns: 1fr; }
+      }
+      chat-editor, chat-preview {
+        min-height: 0;
+      }
+    </style>
   </head>
   <body>
-    <svg style="display: none;">
-      <defs>
-        <symbol id="message-tail" viewBox="0 0 21 28">
-          <path d="M21.006,27.636C21.02,27.651 11.155,30.269 1.302,21.384C0.051,20.256 0.065,15.626 0.006,14.004C-0.253,6.917 8.514,-0.156 11.953,0.003L11.953,13.18C11.953,17.992 12.717,23.841 21.006,27.636Z" />
-        </symbol>
-      </defs>
-    </svg>
-
-    <div class="window">
-      <div class="message-container">
-      </div>
-      <div class="bottom-area">
-        <label class="options-container">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="14" height="14">
-            <path d="M 50 20 L 50 80 M 20 50 L 80 50" stroke="currentColor" stroke-width="10" stroke-linecap="round" fill="none" />
-          </svg>
-          <input type="checkbox" id="options-button">
-          <ul class="options-menu">
-            <li class="options-item" id="clearChat">Clear chat</li>
-            <li class="options-item" id="exportChat">Export chat</li>
-            <li class="options-item" id="importChat">Import chat</li>
-          </ul>
-        </label>
-        <div class="input-container input-sizer stacked">
-          <textarea class="input" rows="1" placeholder="iMessage"></textarea>
-          <button class="send-button" type="button">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><line x1="128" y1="216" x2="128" y2="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="40"/><polyline points="56 112 128 40 200 112" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="40"/></svg>
-          </button>
-        </div>
-        <label class="sender-switch-container">
-          <input type="checkbox" id="senderSwitch" checked>
-          <div class="switch-thumb"></div>
-        </label>
-      </div>
+    <div id="app" class="split">
+      <chat-editor></chat-editor>
+      <chat-preview></chat-preview>
     </div>
-
-    <script src="./script.js" defer></script>
+    <script type="module" src="./components/chat-editor.js"></script>
+    <script type="module" src="./components/chat-preview.js"></script>
   </body>
 </html>
-
 
