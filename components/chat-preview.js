@@ -29,7 +29,7 @@ const isIOS =
 	(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
 class ChatPreview extends HTMLElement {
-	static FLASH_DURATION_MS = 750;
+	static FLASH_DURATION_MS = 1500;
 
 	constructor() {
 		super();
@@ -135,19 +135,35 @@ class ChatPreview extends HTMLElement {
 					}
 
 					&.flash {
-						animation: flash ${ChatPreview.FLASH_DURATION_MS / 1000}s ease-out;
+						animation: flash ${ChatPreview.FLASH_DURATION_MS / 1000}s
+							ease-in-out;
 					}
 				}
 
 				@keyframes flash {
 					0% {
-						filter: invert(0);
+						transform: translateX(0) rotate(0deg) scale(1);
+					}
+					10% {
+						transform: translateX(-2px) rotate(-1deg) scale(1.01);
+					}
+					20% {
+						transform: translateX(2px) rotate(1deg) scale(1.01);
+					}
+					30% {
+						transform: translateX(-2px) rotate(-1deg) scale(1.01);
+					}
+					40% {
+						transform: translateX(2px) rotate(1deg) scale(1.01);
 					}
 					50% {
-						filter: invert(20%);
+						transform: translateX(-1px) rotate(-0.5deg) scale(1.005);
+					}
+					60% {
+						transform: translateX(1px) rotate(0.5deg) scale(1.005);
 					}
 					100% {
-						filter: invert(0);
+						transform: translateX(0) rotate(0deg) scale(1);
 					}
 				}
 
