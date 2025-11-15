@@ -22,7 +22,9 @@ import { store } from './store.js';
  * @property {ChatMessage[]} [messages]
  */
 
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isIOS =
+	/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+	(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
 class ChatPreview extends HTMLElement {
 	constructor() {
@@ -37,294 +39,340 @@ class ChatPreview extends HTMLElement {
 	}
 
 	connectedCallback() {
-		this.shadowRoot.innerHTML = `
-<style>
-	*,
-	*::before,
-	*::after {
-		box-sizing: border-box;
-	}
-	:host{
-		box-sizing: border-box;
-		display: block;
-		height: 100%;
-		font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-	}
+		this.shadowRoot.innerHTML = /* html */ `
+			<style>
+				*,
+				*::before,
+				*::after {
+					box-sizing: border-box;
+				}
+				:host {
+					box-sizing: border-box;
+					display: block;
+					height: 100%;
+					font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+				}
 
-	.window {
-		position: relative;
-		display: flex;
-		flex-direction: column;
-		justify-content: space-between;
-		min-height: 100%;
+				.window {
+					position: relative;
+					display: flex;
+					flex-direction: column;
+					justify-content: space-between;
+					min-height: 100%;
 
-		line-height: 1.2;
-	}
+					line-height: 1.2;
+				}
 
-	.message-container {
-		display: flex;
-		flex-direction: column;
-		padding-inline: var(--padding-inline);
-		overflow-y: scroll;
-		padding-top: var(--message-spacing);
-	}
+				.message-container {
+					display: flex;
+					flex-direction: column;
+					padding-inline: var(--padding-inline);
+					overflow-y: scroll;
+					padding-top: var(--message-spacing);
+				}
 
-	.message {
-		position: relative;
-		display: flex;
-		align-items: center;
-		padding-inline: var(--message-padding-inline);
-		padding-block: var(--message-padding-block);
-		border-radius: var(--border-radius);
+				.message {
+					position: relative;
+					display: flex;
+					align-items: center;
+					padding-inline: var(--message-padding-inline);
+					padding-block: var(--message-padding-block);
+					border-radius: var(--border-radius);
 
-		max-width: 66%;
+					max-width: 66%;
 
-		&.self {
-			background-color: var(--native-sender-color);
-			color: white;
-			fill: var(--native-sender-color);
-			align-self: end;
-			justify-content: flex-end;
+					&.self {
+						background-color: var(--native-sender-color);
+						color: white;
+						fill: var(--native-sender-color);
+						align-self: end;
+						justify-content: flex-end;
 
-			.message-tail {
-				right: var(--message-tail-offset);
-			}
-		}
+						.message-tail {
+							right: var(--message-tail-offset);
+						}
+					}
 
-		&.other {
-			background-color: var(--recipient-color);
-			color: black;
-			fill: var(--recipient-color);
-			align-self: start;
+					&.other {
+						background-color: var(--recipient-color);
+						color: black;
+						fill: var(--recipient-color);
+						align-self: start;
 
-			svg {
-				transform: scale(-1, 1);
-				left: var(--message-tail-offset);
-			}
-		}
+						svg {
+							transform: scale(-1, 1);
+							left: var(--message-tail-offset);
+						}
+					}
 
-		&:not(:first-child) {
-			margin-top: var(--message-spacing);
-		}
+					&:not(:first-child) {
+						margin-top: var(--message-spacing);
+					}
 
-		&.self:has(+ .self),
-		&.other:has(+ .other) {
-			svg {
-				display: none;
-			}
-		}
+					&.self:has(+ .self),
+					&.other:has(+ .other) {
+						svg {
+							display: none;
+						}
+					}
 
-		&.self + .self,
-		&.other + .other {
-			margin-top: var(--consecutive-message-spacing);
-		}
+					&.self + .self,
+					&.other + .other {
+						margin-top: var(--consecutive-message-spacing);
+					}
 
-		svg {
-			position: absolute;
-			bottom: 0;
-			width: calc(10.5rem / 14);
-			height: calc(14rem / 14);
-		}
-	}
+					svg {
+						position: absolute;
+						bottom: 0;
+						width: calc(10.5rem / 14);
+						height: calc(14rem / 14);
+					}
+				}
 
-	.bottom-area {
-		--tight-padding: calc(4rem / 14);
-		position: absolute;
-		bottom: 0;
-		display: flex;
-		width: 100%;
-		padding-inline: var(--padding-inline);
-		padding-block: 1rem;
-		justify-content: space-between;
-		align-items: flex-end;
-		gap: 0.5rem;
-		background: hsl(0 0 100 / 0.7);
-		backdrop-filter: blur(20px);
-	}
+				.bottom-area {
+					--tight-padding: calc(4rem / 14);
+					position: absolute;
+					bottom: 0;
+					display: flex;
+					width: 100%;
+					padding-inline: var(--padding-inline);
+					padding-block: 1rem;
+					justify-content: space-between;
+					align-items: flex-end;
+					gap: 0.5rem;
+					background: hsl(0 0 100 / 0.7);
+					backdrop-filter: blur(20px);
+				}
 
-	.input-container {
-		justify-content: stretch;
-		border: 1px solid var(--input-border-color);
-		padding-left: var(--message-padding-inline);
-		padding-right: var(--tight-padding);
-		border-radius: 1.3rem;
-		flex-grow: 1;
+				.input-container {
+					justify-content: stretch;
+					border: 1px solid var(--input-border-color);
+					padding-left: var(--message-padding-inline);
+					padding-right: var(--tight-padding);
+					border-radius: 1.3rem;
+					flex-grow: 1;
 
-		display: flex;
-		align-items: center;
+					display: flex;
+					align-items: center;
 
-		background: hsl(0 0 100 / 0.4);
+					background: hsl(0 0 100 / 0.4);
 
-		.input {
-			all: unset;
-			max-width: 100%;
-			min-height: 1lh;
-			width: 100%;
-			overflow: hidden;
-			box-sizing: border-box;
-			overflow-wrap: break-word;
-			margin-block: var(--message-padding-block);
-		}
+					.input {
+						all: unset;
+						max-width: 100%;
+						min-height: 1lh;
+						width: 100%;
+						overflow: hidden;
+						box-sizing: border-box;
+						overflow-wrap: break-word;
+						margin-block: var(--message-padding-block);
+					}
 
-		.send-button {
-			all: unset;
-			align-self: flex-end;
-			cursor: pointer;
-			color: white;
-			background-color: var(--native-sender-color);
-			min-height: calc(1lh + 2 * var(--message-padding-block) - 2 * var(--tight-padding));
-			min-width: calc(1lh + 2 * var(--message-padding-block) - 2 * var(--tight-padding));
-			border-radius: 50%;
-			margin-block: var(--tight-padding);
-			display: flex;
-			align-items: center;
-			justify-content: center;
+					.send-button {
+						all: unset;
+						align-self: flex-end;
+						cursor: pointer;
+						color: white;
+						background-color: var(--native-sender-color);
+						min-height: calc(
+							1lh + 2 * var(--message-padding-block) - 2 * var(--tight-padding)
+						);
+						min-width: calc(
+							1lh + 2 * var(--message-padding-block) - 2 * var(--tight-padding)
+						);
+						border-radius: 50%;
+						margin-block: var(--tight-padding);
+						display: flex;
+						align-items: center;
+						justify-content: center;
 
-			svg {
-				height: calc(14rem / 14);
-				width: calc(14rem / 14);
-			}
-			/* padding: 0.3rem; */
-		}
+						svg {
+							height: calc(14rem / 14);
+							width: calc(14rem / 14);
+						}
+						/* padding: 0.3rem; */
+					}
 
-		.input:placeholder-shown + .send-button {
-			display: none;
-		}
+					.input:placeholder-shown + .send-button {
+						display: none;
+					}
 
-		/* Hide send button on non-touch devices */
-		body:not(.touch-screen) & .send-button {
-			display: none;
-		}
-	}
+					/* Hide send button on non-touch devices */
+					body:not(.touch-screen) & .send-button {
+						display: none;
+					}
+				}
 
-	.sender-switch-container {
-		position: relative;
-		flex-shrink: 0;
-		width: calc(2lh + var(--message-padding-block) * 2);
-		height: calc(1lh + var(--message-padding-block) * 2);
-		background-color: var(--recipient-color);
-		border-radius: var(--border-radius);
-		cursor: pointer;
-		transition: background-color 0.3s ease-in-out;
+				.sender-switch-container {
+					position: relative;
+					flex-shrink: 0;
+					width: calc(2lh + var(--message-padding-block) * 2);
+					height: calc(1lh + var(--message-padding-block) * 2);
+					background-color: var(--recipient-color);
+					border-radius: var(--border-radius);
+					cursor: pointer;
+					transition: background-color 0.3s ease-in-out;
 
-		&:has(input:checked) {
-			background-color: var(--native-sender-color);
-		}
+					&:has(input:checked) {
+						background-color: var(--native-sender-color);
+					}
 
-		input {
-			opacity: 0;
-			height: 0;
-			width: 0;
-		}
+					input {
+						opacity: 0;
+						height: 0;
+						width: 0;
+					}
 
-		.switch-thumb {
-			position: absolute;
-			left: var(--message-padding-block);
-			top: var(--message-padding-block);
-			width: 1lh;
-			height: 1lh;
-			background-color: white;
-			border-radius: 50%;
-			transition: left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-		}
+					.switch-thumb {
+						position: absolute;
+						left: var(--message-padding-block);
+						top: var(--message-padding-block);
+						width: 1lh;
+						height: 1lh;
+						background-color: white;
+						border-radius: 50%;
+						transition: left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+					}
 
-		input:checked + .switch-thumb {
-			left: calc(var(--message-padding-block) + 1lh);
-		}
-	}
+					input:checked + .switch-thumb {
+						left: calc(var(--message-padding-block) + 1lh);
+					}
+				}
 
-	.options-container {
-		position: relative;
-		min-width: var(--single-line-message-height);
-		min-height: var(--single-line-message-height);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background-color: color-mix(in srgb, var(--recipient-color) 80%, transparent);
-		border: 1px solid transparent;
-		border-radius: 100%;
+				.options-container {
+					position: relative;
+					min-width: var(--single-line-message-height);
+					min-height: var(--single-line-message-height);
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					background-color: color-mix(
+						in srgb,
+						var(--recipient-color) 80%,
+						transparent
+					);
+					border: 1px solid transparent;
+					border-radius: 100%;
 
-		color: #7e7f86;
+					color: #7e7f86;
 
-		input {
-			position: absolute;
-			opacity: 0;
-			height: 0;
-			width: 0;
-		}
+					input {
+						position: absolute;
+						opacity: 0;
+						height: 0;
+						width: 0;
+					}
 
-		.options-menu {
-			display: none;
-			position: absolute;
-			bottom: var(--single-line-message-height);
-			left: 0;
-			min-width: max-content;
-			color: black;
+					.options-menu {
+						display: none;
+						position: absolute;
+						bottom: var(--single-line-message-height);
+						left: 0;
+						min-width: max-content;
+						color: black;
 
-			padding-inline: 0.3rem;
-			padding-block: 0.3rem;
+						padding-inline: 0.3rem;
+						padding-block: 0.3rem;
 
-			background-color: var(--dropdown-background);
-			border: 1px solid var(--dropdown-border);
-			border-radius: 0.4rem;
+						background-color: var(--dropdown-background);
+						border: 1px solid var(--dropdown-border);
+						border-radius: 0.4rem;
 
-			filter: drop-shadow(0 0 0.7rem rgba(0, 0, 0, 0.3));
+						filter: drop-shadow(0 0 0.7rem rgba(0, 0, 0, 0.3));
 
-			.options-item {
-				padding-inline: 0.6rem;
-				padding-block: 0.3rem;
-				border-radius: 0.3rem;
-			}
+						.options-item {
+							padding-inline: 0.6rem;
+							padding-block: 0.3rem;
+							border-radius: 0.3rem;
+						}
 
-			.options-item:hover {
-				color: white;
-				background-color: color-mix(
-					in oklab,
-					var(--dropdown-background) 20%,
-					var(--native-sender-color) 80%
-				);
-			}
-		}
+						.options-item:hover {
+							color: white;
+							background-color: color-mix(
+								in oklab,
+								var(--dropdown-background) 20%,
+								var(--native-sender-color) 80%
+							);
+						}
+					}
 
-		input:checked + .options-menu {
-			display: block;
-		}
-	}
-</style>
-<svg style="display:none">
-	<defs>
-		<symbol id="message-tail" viewBox="0 0 21 28">
-			<path d="M21.006,27.636C21.02,27.651 11.155,30.269 1.302,21.384C0.051,20.256 0.065,15.626 0.006,14.004C-0.253,6.917 8.514,-0.156 11.953,0.003L11.953,13.18C11.953,17.992 12.717,23.841 21.006,27.636Z" />
-		</symbol>
-	</defs>
-</svg>
-<div class="window">
-	<div class="message-container"></div>
-	<div class="bottom-area">
-		<label class="options-container">
-			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="14" height="14">
-				<path d="M 50 20 L 50 80 M 20 50 L 80 50" stroke="currentColor" stroke-width="10" stroke-linecap="round" fill="none" />
+					input:checked + .options-menu {
+						display: block;
+					}
+				}
+			</style>
+			<svg style="display:none">
+				<defs>
+					<symbol id="message-tail" viewBox="0 0 21 28">
+						<path
+							d="M21.006,27.636C21.02,27.651 11.155,30.269 1.302,21.384C0.051,20.256 0.065,15.626 0.006,14.004C-0.253,6.917 8.514,-0.156 11.953,0.003L11.953,13.18C11.953,17.992 12.717,23.841 21.006,27.636Z"
+						/>
+					</symbol>
+				</defs>
 			</svg>
-			<input type="checkbox" id="options-button">
-			<ul class="options-menu">
-				<li class="options-item" id="clearChat">Clear chat</li>
-				<li class="options-item" id="exportChat">Export chat</li>
-				<li class="options-item" id="importChat">Import chat</li>
-			</ul>
-		</label>
-		<div class="input-container input-sizer stacked">
-			<textarea class="input" rows="1" placeholder="iMessage"></textarea>
-			<button class="send-button" type="button">
-				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><line x1="128" y1="216" x2="128" y2="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="40"/><polyline points="56 112 128 40 200 112" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="40"/></svg>
-			</button>
-		</div>
-		<label class="sender-switch-container">
-			<input type="checkbox" id="senderSwitch" checked>
-			<div class="switch-thumb"></div>
-		</label>
-	</div>
-</div>
-<input id="import-file" type="file" accept=".json" style="display:none" />
+			<div class="window">
+				<div class="message-container"></div>
+				<div class="bottom-area">
+					<label class="options-container">
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 100 100"
+							width="14"
+							height="14"
+						>
+							<path
+								d="M 50 20 L 50 80 M 20 50 L 80 50"
+								stroke="currentColor"
+								stroke-width="10"
+								stroke-linecap="round"
+								fill="none"
+							/>
+						</svg>
+						<input type="checkbox" id="options-button" />
+						<ul class="options-menu">
+							<li class="options-item" id="clearChat">Clear chat</li>
+							<li class="options-item" id="exportChat">Export chat</li>
+							<li class="options-item" id="importChat">Import chat</li>
+						</ul>
+					</label>
+					<div class="input-container input-sizer stacked">
+						<textarea class="input" rows="1" placeholder="iMessage"></textarea>
+						<button class="send-button" type="button">
+							<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+								<line
+									x1="128"
+									y1="216"
+									x2="128"
+									y2="40"
+									fill="none"
+									stroke="currentColor"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="40"
+								/>
+								<polyline
+									points="56 112 128 40 200 112"
+									fill="none"
+									stroke="currentColor"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="40"
+								/>
+							</svg>
+						</button>
+					</div>
+					<label class="sender-switch-container">
+						<input type="checkbox" id="senderSwitch" checked />
+						<div class="switch-thumb"></div>
+					</label>
+				</div>
+			</div>
+			<input
+				id="import-file"
+				type="file"
+				accept=".json"
+				style="display:none"
+			/>
 		`;
 
 		this.$ = {
@@ -335,7 +383,7 @@ class ChatPreview extends HTMLElement {
 			optionsButton: this.shadowRoot.querySelector('#options-button'),
 			optionsContainer: this.shadowRoot.querySelector('.options-container'),
 			senderSwitch: this.shadowRoot.querySelector('#senderSwitch'),
-			importFile: this.shadowRoot.querySelector('#import-file')
+			importFile: this.shadowRoot.querySelector('#import-file'),
 		};
 
 		// Mark host for touch capability to control send-button visibility
@@ -346,10 +394,19 @@ class ChatPreview extends HTMLElement {
 		// Events
 		this.$.input.addEventListener('keydown', this._onKeyDown);
 		this.$.input.addEventListener('input', this._onInput);
-		this.$.send.addEventListener('pointerdown', (e) => { e.preventDefault(); this._sendNow(e); });
-		this.shadowRoot.querySelector('#clearChat').addEventListener('click', () => this._clearChat());
-		this.shadowRoot.querySelector('#exportChat').addEventListener('click', () => this._exportChat());
-		this.shadowRoot.querySelector('#importChat').addEventListener('click', () => this.$.importFile.click());
+		this.$.send.addEventListener('pointerdown', (e) => {
+			e.preventDefault();
+			this._sendNow(e);
+		});
+		this.shadowRoot
+			.querySelector('#clearChat')
+			.addEventListener('click', () => this._clearChat());
+		this.shadowRoot
+			.querySelector('#exportChat')
+			.addEventListener('click', () => this._exportChat());
+		this.shadowRoot
+			.querySelector('#importChat')
+			.addEventListener('click', () => this.$.importFile.click());
 		this.$.importFile.addEventListener('change', (e) => this._importChat(e));
 		this.shadowRoot.addEventListener('click', (event) => {
 			const optionsButton = this.$.optionsButton;
@@ -468,7 +525,7 @@ class ChatPreview extends HTMLElement {
 		store.updateMessage(created.id, {
 			message: text,
 			sender: isSender ? 'self' : 'other',
-			timestamp: new Date().toISOString()
+			timestamp: new Date().toISOString(),
 		});
 		this.$.input.value = '';
 		this.$.input.style.height = 'auto';
@@ -518,7 +575,9 @@ class ChatPreview extends HTMLElement {
 	 */
 	_isNearBottom() {
 		const container = this.$.container;
-		return container.scrollHeight - container.scrollTop - container.clientHeight < 10;
+		return (
+			container.scrollHeight - container.scrollTop - container.clientHeight < 10
+		);
 	}
 
 	/**
@@ -600,7 +659,8 @@ class ChatPreview extends HTMLElement {
 	 */
 	#renderMessageNodes(m) {
 		const nodes = [];
-		const sender = m && (m.sender === 'self' || m.sender === 'other') ? m.sender : 'self';
+		const sender =
+			m && (m.sender === 'self' || m.sender === 'other') ? m.sender : 'self';
 		const id = m && m.id ? m.id : '';
 		if (m && Array.isArray(m.images) && m.images.length > 0) {
 			for (const img of m.images) {
@@ -661,7 +721,9 @@ class ChatPreview extends HTMLElement {
 		if (!container || !message) return [];
 		const nodes = this.#renderMessageNodes(message);
 		if (nodes.length === 0) return [];
-		const idx = Array.isArray(messages) ? messages.findIndex(m => m && m.id === message.id) : -1;
+		const idx = Array.isArray(messages)
+			? messages.findIndex((m) => m && m.id === message.id)
+			: -1;
 		let referenceNode = null;
 		if (idx !== -1) {
 			const next = messages[idx + 1];
@@ -742,7 +804,10 @@ class ChatPreview extends HTMLElement {
 		if (document.readyState === 'complete') run();
 		else window.addEventListener('load', run, { once: true });
 		if (document.fonts && document.fonts.ready) document.fonts.ready.then(run);
-		window.addEventListener('resize', this._debounce(() => this._shrinkWrapResize(), 150));
+		window.addEventListener(
+			'resize',
+			this._debounce(() => this._shrinkWrapResize(), 150),
+		);
 	}
 	/**
 	 * Apply shrink-wrap to a specific set of nodes.
@@ -771,7 +836,7 @@ class ChatPreview extends HTMLElement {
 	}
 	/** Apply shrink-wrap to all message bubbles. */
 	_shrinkWrapAll() {
-		this.shadowRoot.querySelectorAll('.message').forEach(el => {
+		this.shadowRoot.querySelectorAll('.message').forEach((el) => {
 			const span = el.querySelector('span');
 			if (!span) return;
 			const range = document.createRange();
@@ -783,7 +848,7 @@ class ChatPreview extends HTMLElement {
 	}
 	/** Remove shrink-wrap styles from all message bubbles. */
 	_shrinkWrapUnwrapAll() {
-		this.shadowRoot.querySelectorAll('.message').forEach(el => {
+		this.shadowRoot.querySelectorAll('.message').forEach((el) => {
 			el.style.width = '';
 			el.style.boxSizing = '';
 		});
@@ -818,5 +883,3 @@ class ChatPreview extends HTMLElement {
 }
 
 customElements.define('chat-preview', ChatPreview);
-
-

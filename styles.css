@@ -1,9 +1,9 @@
-@import "./reset.css";
+@import './reset.css';
 
 *,
 *::before,
 *::after {
-  box-sizing: border-box;
+	box-sizing: border-box;
 }
 
 /*
@@ -13,61 +13,64 @@ A: I designed the message sipper to have whole number pixel sizes & offsets at 1
 */
 
 :root {
-  --font-size: 14px;
-  --font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+	--font-size: 14px;
+	--font-family: -apple-system, BlinkMacSystemFont, sans-serif;
 
-  --padding-inline: 1.5rem;
+	--padding-inline: 1.5rem;
 
-  --native-sender-color: #1285fe;
-  --recipient-color: #e6e5ec;
+	--native-sender-color: #1285fe;
+	--recipient-color: #e6e5ec;
 
-  --message-spacing: calc(8rem / 14);
-  --consecutive-message-spacing: calc(3rem / 14);
+	--message-spacing: calc(8rem / 14);
+	--consecutive-message-spacing: calc(3rem / 14);
 
-  --border-radius: 1rem;
+	--border-radius: 1rem;
 
-  --input-border-color: #ddddde;
-  --dropdown-background: #ededed;
-  --dropdown-border: #b3b3b3;
+	--input-border-color: #ddddde;
+	--dropdown-background: #ededed;
+	--dropdown-border: #b3b3b3;
 
-  --message-padding-inline: calc(8rem / 14);
-  --message-padding-block: calc(4rem / 14);
-  --message-tail-offset: calc(-1 * 4.5rem / 14);
+	--message-padding-inline: calc(8rem / 14);
+	--message-padding-block: calc(4rem / 14);
+	--message-tail-offset: calc(-1 * 4.5rem / 14);
 
-  --single-line-message-height: calc(1lh + 2 * var(--message-padding-block));
+	--single-line-message-height: calc(1lh + 2 * var(--message-padding-block));
 }
 
 @media (max-width: 480px) {
-  :root {
-    --font-size: 16px;
-    --padding-inline: .9rem;
-    --message-padding-inline: calc(10rem / 14);
-    --message-padding-block: calc(6rem / 14);
-  }
+	:root {
+		--font-size: 16px;
+		--padding-inline: 0.9rem;
+		--message-padding-inline: calc(10rem / 14);
+		--message-padding-block: calc(6rem / 14);
+	}
 }
 
 body {
-  height: calc(var(--vh, 1dvh) * 100);
-  max-width: 100%;
+	height: calc(var(--vh, 1dvh) * 100);
+	max-width: 100%;
 
-  font-family: var(--font-family);
-  font-size: var(--font-size);
+	font-family: var(--font-family);
+	font-size: var(--font-size);
 
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
 }
 
 .app-container {
-  width: 100%;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  height: calc(var(--vh, 1dvh) * 100);
+	width: 100%;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1rem;
+	height: calc(var(--vh, 1dvh) * 100);
 }
 @media (max-width: 900px) {
-  .app-container { grid-template-columns: 1fr; }
+	.app-container {
+		grid-template-columns: 1fr;
+	}
 }
-chat-editor, chat-preview {
-  min-height: 0;
+chat-editor,
+chat-preview {
+	min-height: 0;
 }

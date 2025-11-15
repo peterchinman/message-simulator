@@ -6,13 +6,25 @@ const DEFAULT_MESSAGES = [
 	{ message: 'Hi', sender: 'other' },
 	{ message: 'Hello', sender: 'other' },
 	{ message: 'What is this?', sender: 'self' },
-	{ message: 'I had a dream that I was building an iMessage simulator', sender: 'other' },
-	{ message: 'When I woke up I decided that I should build it', sender: 'other' },
+	{
+		message: 'I had a dream that I was building an iMessage simulator',
+		sender: 'other',
+	},
+	{
+		message: 'When I woke up I decided that I should build it',
+		sender: 'other',
+	},
 	{ message: 'What do I do with it?', sender: 'self' },
-	{ message: 'Flip the switch beside the input to change senders', sender: 'other' },
-	{ message: 'Use the plus menu to clear, export, and import', sender: 'other' },
+	{
+		message: 'Flip the switch beside the input to change senders',
+		sender: 'other',
+	},
+	{
+		message: 'Use the plus menu to clear, export, and import',
+		sender: 'other',
+	},
 	{ message: 'No like, what is it for?', sender: 'self' },
-	{ message: 'Lol idk', sender: 'other' }
+	{ message: 'Lol idk', sender: 'other' },
 ];
 
 class MessageStore extends EventTarget {
@@ -52,7 +64,10 @@ class MessageStore extends EventTarget {
 
 	save() {
 		try {
-			const payload = { version: CURRENT_SCHEMA_VERSION, messages: this.#messages };
+			const payload = {
+				version: CURRENT_SCHEMA_VERSION,
+				messages: this.#messages,
+			};
 			localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(payload));
 		} catch (_err) {
 			// swallow
@@ -68,12 +83,12 @@ class MessageStore extends EventTarget {
 			id: this.#generateId(),
 			sender: 'self',
 			message: '',
-			timestamp: new Date().toISOString()
+			timestamp: new Date().toISOString(),
 		};
 		if (!afterId) {
 			this.#messages.push(msg);
 		} else {
-			const idx = this.#messages.findIndex(m => m.id === afterId);
+			const idx = this.#messages.findIndex((m) => m.id === afterId);
 			if (idx === -1) this.#messages.push(msg);
 			else this.#messages.splice(idx + 1, 0, msg);
 		}
@@ -83,7 +98,7 @@ class MessageStore extends EventTarget {
 	}
 
 	updateMessage(id, patch) {
-		const idx = this.#messages.findIndex(m => m.id === id);
+		const idx = this.#messages.findIndex((m) => m.id === id);
 		if (idx === -1) return;
 		this.#messages[idx] = { ...this.#messages[idx], ...patch };
 		this.#scheduleSave();
@@ -91,7 +106,7 @@ class MessageStore extends EventTarget {
 	}
 
 	deleteMessage(id) {
-		const idx = this.#messages.findIndex(m => m.id === id);
+		const idx = this.#messages.findIndex((m) => m.id === id);
 		if (idx === -1) return;
 		const removed = this.#messages.splice(idx, 1)[0];
 		this.#scheduleSave();
@@ -100,7 +115,7 @@ class MessageStore extends EventTarget {
 
 	insertImage(id, dataUrl) {
 		if (!dataUrl) return;
-		const idx = this.#messages.findIndex(m => m.id === id);
+		const idx = this.#messages.findIndex((m) => m.id === id);
 		if (idx === -1) return;
 		const msg = this.#messages[idx];
 		const images = Array.isArray(msg.images) ? msg.images.slice() : [];
@@ -117,7 +132,10 @@ class MessageStore extends EventTarget {
 	}
 
 	exportJson(pretty = true) {
-		const payload = { version: CURRENT_SCHEMA_VERSION, messages: this.#messages };
+		const payload = {
+			version: CURRENT_SCHEMA_VERSION,
+			messages: this.#messages,
+		};
 		return pretty ? JSON.stringify(payload, null, 2) : JSON.stringify(payload);
 	}
 
@@ -126,20 +144,26 @@ class MessageStore extends EventTarget {
 		try {
 			parsed = typeof json === 'string' ? JSON.parse(json) : json;
 		} catch (_e) {
-			return console.error ('Invalid JSON');
-			// TODO: Handle this error
+			return console.error('Invalid JSON');
+			// TODO: Handle this error gracefully
 		}
-		let imported = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.messages) ? parsed.messages : null);
+		let imported = Array.isArray(parsed)
+			? parsed
+			: parsed && Array.isArray(parsed.messages)
+				? parsed.messages
+				: null;
 		if (!imported) {
-			return console.error ('Invalid format');
-			// TODO: Handle this error`
+			return console.error('Invalid format');
+			// TODO: Handle this error gracefully
 		}
-		imported = imported.map(m => {
-			if (m && typeof m.timestamp === 'number') {
-				return { ...m, timestamp: new Date(m.timestamp).toISOString() };
-			}
-			return m;
-		}).filter(this.#isValidMessage.bind(this));
+		imported = imported
+			.map((m) => {
+				if (m && typeof m.timestamp === 'number') {
+					return { ...m, timestamp: new Date(m.timestamp).toISOString() };
+				}
+				return m;
+			})
+			.filter(this.#isValidMessage.bind(this));
 		this.#ensureMessageIds(imported);
 		this.#messages = imported;
 		this.#scheduleSave();
@@ -155,16 +179,31 @@ class MessageStore extends EventTarget {
 	}
 
 	#emitChange(reason, message = null) {
-		this.dispatchEvent(new CustomEvent('messages:changed', { detail: { reason, message, messages: this.getMessages() }, bubbles: false, composed: false }));
+		this.dispatchEvent(
+			new CustomEvent('messages:changed', {
+				detail: { reason, message, messages: this.getMessages() },
+				bubbles: false,
+				composed: false,
+			}),
+		);
 	}
 
 	#generateId() {
 		try {
-			if (window && window.crypto && typeof window.crypto.randomUUID === 'function') {
+			if (
+				window &&
+				window.crypto &&
+				typeof window.crypto.randomUUID === 'function'
+			) {
 				return window.crypto.randomUUID();
 			}
 		} catch (_e) {}
-		return 'msg_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
+		return (
+			'msg_' +
+			Date.now().toString(36) +
+			'_' +
+			Math.random().toString(36).slice(2, 10)
+		);
 	}
 
 	#withIdsAndTimestamps(arr) {
@@ -173,22 +212,28 @@ class MessageStore extends EventTarget {
 			id: this.#generateId(),
 			sender: m.sender === 'self' || m.sender === 'other' ? m.sender : 'self',
 			message: typeof m.message === 'string' ? m.message : '',
-			timestamp: new Date(now + i * 1000).toISOString()
+			timestamp: new Date(now + i * 1000).toISOString(),
 		}));
 	}
 
 	#migrateStoredData(parsed) {
 		let migrated = false;
-		if (parsed && typeof parsed === 'object' && parsed.version === CURRENT_SCHEMA_VERSION) {
+		if (
+			parsed &&
+			typeof parsed === 'object' &&
+			parsed.version === CURRENT_SCHEMA_VERSION
+		) {
 			let messages = Array.isArray(parsed.messages) ? parsed.messages : [];
 			let changed = false;
-			messages = messages.map(m => {
-				if (m && typeof m.timestamp === 'number') {
-					changed = true;
-					return { ...m, timestamp: new Date(m.timestamp).toISOString() };
-				}
-				return m;
-			}).filter(this.#isValidMessage.bind(this));
+			messages = messages
+				.map((m) => {
+					if (m && typeof m.timestamp === 'number') {
+						changed = true;
+						return { ...m, timestamp: new Date(m.timestamp).toISOString() };
+					}
+					return m;
+				})
+				.filter(this.#isValidMessage.bind(this));
 			if (this.#ensureMessageIds(messages)) changed = true;
 			migrated = migrated || changed;
 			return { messages, migrated };
@@ -229,5 +274,3 @@ class MessageStore extends EventTarget {
 
 const store = new MessageStore();
 export { store, CHAT_STORAGE_KEY, CURRENT_SCHEMA_VERSION };
-
-

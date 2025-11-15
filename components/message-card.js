@@ -1,6 +1,3 @@
-// <message-card> scaffolding
-// Emits editor:* events. Full behavior implemented in later steps.
-
 class MessageCard extends HTMLElement {
 	static get observedAttributes() {
 		return ['message-id', 'sender', 'timestamp', 'text'];
@@ -14,38 +11,78 @@ class MessageCard extends HTMLElement {
 	}
 
 	connectedCallback() {
-		this.shadowRoot.innerHTML = `
-<style>
-	:host{display:block}
-	.card{border:1px solid var(--card-border,#ddd);border-radius:8px;padding:10px;margin:8px 0;font:14px/1.4 system-ui;background:#fff}
-	.row{display:flex;gap:8px;align-items:center;margin:6px 0}
-	.row textarea{flex:1;resize:vertical;min-height:48px}
-	.row input[type="datetime-local"]{font:inherit}
-	.actions{display:flex;gap:8px;flex-wrap:wrap}
-	button{font:12px system-ui;padding:6px 10px;border:1px solid #ccc;background:#f8f8f8;border-radius:6px;cursor:pointer}
-	button:active{transform:translateY(1px)}
-	.switch{display:inline-flex;align-items:center;gap:6px}
-	.switch input{accent-color:#007aff}
-</style>
-<div class="card">
-	<div class="row">
-		<textarea part="message-input" placeholder="Message..."></textarea>
-	</div>
-	<div class="row">
-		<label class="switch">Sender:
-			<select part="sender-select">
-				<option value="self">self</option>
-				<option value="other">other</option>
-			</select>
-		</label>
-		<input part="date-input" type="datetime-local" />
-	</div>
-	<div class="actions">
-		<button part="insert-image">Insert Picture</button>
-		<button part="add-below">New message below</button>
-		<button part="delete" style="margin-left:auto">Delete</button>
-	</div>
-</div>
+		this.shadowRoot.innerHTML = /* html */ `
+			<style>
+				:host {
+					display: block;
+				}
+				.card {
+					border: 1px solid var(--card-border, #ddd);
+					border-radius: 8px;
+					padding: 10px;
+					margin: 8px 0;
+					font: 14px/1.4 system-ui;
+					background: #fff;
+				}
+				.row {
+					display: flex;
+					gap: 8px;
+					align-items: center;
+					margin: 6px 0;
+				}
+				.row textarea {
+					flex: 1;
+					resize: vertical;
+					min-height: 48px;
+				}
+				.row input[type='datetime-local'] {
+					font: inherit;
+				}
+				.actions {
+					display: flex;
+					gap: 8px;
+					flex-wrap: wrap;
+				}
+				button {
+					font: 12px system-ui;
+					padding: 6px 10px;
+					border: 1px solid #ccc;
+					background: #f8f8f8;
+					border-radius: 6px;
+					cursor: pointer;
+				}
+				button:active {
+					transform: translateY(1px);
+				}
+				.switch {
+					display: inline-flex;
+					align-items: center;
+					gap: 6px;
+				}
+				.switch input {
+					accent-color: #007aff;
+				}
+			</style>
+			<div class="card">
+				<div class="row">
+					<textarea part="message-input" placeholder="Message..."></textarea>
+				</div>
+				<div class="row">
+					<label class="switch"
+						>Sender:
+						<select part="sender-select">
+							<option value="self">self</option>
+							<option value="other">other</option>
+						</select>
+					</label>
+					<input part="date-input" type="datetime-local" />
+				</div>
+				<div class="actions">
+					<button part="insert-image">Insert Picture</button>
+					<button part="add-below">New message below</button>
+					<button part="delete" style="margin-left:auto">Delete</button>
+				</div>
+			</div>
 		`;
 		this.shadowRoot.addEventListener('click', this._onClick);
 		this.shadowRoot.addEventListener('input', this._onInput);
@@ -61,10 +98,18 @@ class MessageCard extends HTMLElement {
 		this.#syncFromAttrs();
 	}
 
-	get messageId() { return this.getAttribute('message-id') || ''; }
-	get text() { return this.getAttribute('text') || ''; }
-	get sender() { return this.getAttribute('sender') || 'self'; }
-	get timestamp() { return this.getAttribute('timestamp') || ''; }
+	get messageId() {
+		return this.getAttribute('message-id') || '';
+	}
+	get text() {
+		return this.getAttribute('text') || '';
+	}
+	get sender() {
+		return this.getAttribute('sender') || 'self';
+	}
+	get timestamp() {
+		return this.getAttribute('timestamp') || '';
+	}
 
 	#syncFromAttrs() {
 		const textarea = this.shadowRoot.querySelector('textarea');
@@ -78,8 +123,8 @@ class MessageCard extends HTMLElement {
 			try {
 				if (iso) {
 					const d = new Date(iso);
-					const pad = n => String(n).padStart(2, '0');
-					const v = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+					const pad = (n) => String(n).padStart(2, '0');
+					const v = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 					date.value = v;
 				} else {
 					date.value = '';
@@ -94,13 +139,22 @@ class MessageCard extends HTMLElement {
 		const target = e.target;
 		if (!target) return;
 		if (target.matches('textarea')) {
-			this.#emit('editor:update', { id: this.messageId, patch: { message: target.value } });
+			this.#emit('editor:update', {
+				id: this.messageId,
+				patch: { message: target.value },
+			});
 		} else if (target.matches('select')) {
-			this.#emit('editor:update', { id: this.messageId, patch: { sender: target.value } });
+			this.#emit('editor:update', {
+				id: this.messageId,
+				patch: { sender: target.value },
+			});
 		} else if (target.matches('input[type="datetime-local"]')) {
 			const value = target.value;
 			const iso = value ? new Date(value).toISOString() : null;
-			this.#emit('editor:update', { id: this.messageId, patch: { timestamp: iso } });
+			this.#emit('editor:update', {
+				id: this.messageId,
+				patch: { timestamp: iso },
+			});
 		}
 	}
 
@@ -122,10 +176,10 @@ class MessageCard extends HTMLElement {
 	}
 
 	#emit(type, detail) {
-		this.dispatchEvent(new CustomEvent(type, { detail, bubbles: true, composed: true }));
+		this.dispatchEvent(
+			new CustomEvent(type, { detail, bubbles: true, composed: true }),
+		);
 	}
 }
 
 customElements.define('message-card', MessageCard);
-
-
