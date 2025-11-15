@@ -1,4 +1,5 @@
 import { html } from '../utils/template.js';
+import { initTooltips, tooltipStyles } from '../utils/tooltip.js';
 
 class SenderSwitch extends HTMLElement {
 	static get observedAttributes() {
@@ -12,6 +13,8 @@ class SenderSwitch extends HTMLElement {
 	}
 
 	connectedCallback() {
+		this.shadowRoot.adoptedStyleSheets = [tooltipStyles];
+
 		this.shadowRoot.innerHTML = html`
 			<style>
 				:host {
@@ -49,7 +52,7 @@ class SenderSwitch extends HTMLElement {
 						background-color: var(--color-page);
 						border-radius: 50%;
 						transition: left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-						
+
 						filter: drop-shadow(4px 0 4px var(--color-drop-shadow));
 					}
 
@@ -59,7 +62,10 @@ class SenderSwitch extends HTMLElement {
 					}
 				}
 			</style>
-			<label class="sender-switch-container">
+			<label
+				class="sender-switch-container"
+				data-tooltip="Switch between senders"
+			>
 				<input type="checkbox" part="checkbox" />
 				<div class="switch-thumb"></div>
 			</label>
@@ -70,6 +76,7 @@ class SenderSwitch extends HTMLElement {
 			checkbox.addEventListener('change', this._onChange);
 			this.#syncFromAttr();
 		}
+		initTooltips(this.shadowRoot, this);
 	}
 
 	attributeChangedCallback(name) {

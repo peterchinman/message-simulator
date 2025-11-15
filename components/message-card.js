@@ -18,8 +18,13 @@ class MessageCard extends HTMLElement {
 	}
 
 	connectedCallback() {
-		// Adopt shared tooltip stylesheet
 		this.shadowRoot.adoptedStyleSheets = [tooltipStyles];
+
+		// Detect if running on Mac
+		const isMac =
+			navigator.platform.toUpperCase().indexOf('MAC') >= 0 ||
+			navigator.userAgent.toUpperCase().indexOf('MAC') >= 0;
+		const metaKey = isMac ? '⌘' : 'Ctrl';
 
 		this.shadowRoot.innerHTML = html`
 			<style>
@@ -162,7 +167,12 @@ class MessageCard extends HTMLElement {
 				</div>
 				<div class="row actions">
 					<div class="left">
-						<button part="add-below" data-tooltip="Add message below">
+						<button
+							part="add-below"
+							data-tooltip="Add message below"
+							data-tooltip-hotkey="${metaKey}+↵"
+							data-tooltip-subtext="You can also type three new lines to add a new message below."
+						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								viewbox="0 0 35 28"
@@ -345,6 +355,13 @@ class MessageCard extends HTMLElement {
 	_onKeyDown(e) {
 		const target = e.target;
 		if (!target || !target.matches('textarea')) return;
+
+		// Handle Cmd+Enter (Mac) or Ctrl+Enter (Windows/Linux) to add message below
+		if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+			e.preventDefault();
+			this.#emit('editor:add-below', { id: this.messageId });
+			return;
+		}
 
 		// Check if Enter key is pressed
 		if (e.key === 'Enter' && !e.shiftKey) {
