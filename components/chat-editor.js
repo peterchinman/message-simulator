@@ -1,5 +1,7 @@
 import { store } from './store.js';
 import './message-card.js';
+import { html } from '../utils/template.js';
+
 
 class ChatEditor extends HTMLElement {
 	constructor() {
@@ -10,7 +12,7 @@ class ChatEditor extends HTMLElement {
 	}
 
 	connectedCallback() {
-		this.shadowRoot.innerHTML = /* html */ `
+		this.shadowRoot.innerHTML = html`
 			<style>
 				:host {
 					display: block;

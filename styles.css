@@ -15,6 +15,7 @@ A: I designed the message sipper to have whole number pixel sizes & offsets at 1
 :root {
 	--font-size: 14px;
 	--font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+	--line-height: 1.2;
 
 	--padding-inline: 1.5rem;
 
@@ -26,7 +27,7 @@ A: I designed the message sipper to have whole number pixel sizes & offsets at 1
 
 	--border-radius: 1rem;
 
-	--input-border-color: #ddddde;
+	--border-color: #ddddde;
 	--dropdown-background: #ededed;
 	--dropdown-border: #b3b3b3;
 

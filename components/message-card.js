@@ -1,3 +1,6 @@
+import { html } from '../utils/template.js';
+import './sender-switch.js';
+
 class MessageCard extends HTMLElement {
 	static get observedAttributes() {
 		return ['message-id', 'sender', 'timestamp', 'text'];
@@ -11,14 +14,14 @@ class MessageCard extends HTMLElement {
 	}
 
 	connectedCallback() {
-		this.shadowRoot.innerHTML = /* html */ `
+		this.shadowRoot.innerHTML = html`
 			<style>
 				:host {
 					display: block;
 				}
 				.card {
-					border: 1px solid var(--card-border, #ddd);
-					border-radius: 8px;
+					border: 1px solid var(--border-color);
+					border-radius: var(--border-radius);
 					padding: 10px;
 					margin: 8px 0;
 					font: 14px/1.4 system-ui;
@@ -54,38 +57,36 @@ class MessageCard extends HTMLElement {
 				button:active {
 					transform: translateY(1px);
 				}
-				.switch {
-					display: inline-flex;
-					align-items: center;
-					gap: 6px;
-				}
-				.switch input {
-					accent-color: #007aff;
-				}
 			</style>
 			<div class="card">
 				<div class="row">
-					<textarea part="message-input" placeholder="Message..."></textarea>
+					<sender-switch part="sender-switch"></sender-switch>
+					<input part="date-input" type="datetime-local" />
+					<button part="delete">Delete</button>
 				</div>
 				<div class="row">
-					<label class="switch"
-						>Sender:
-						<select part="sender-select">
-							<option value="self">self</option>
-							<option value="other">other</option>
-						</select>
-					</label>
-					<input part="date-input" type="datetime-local" />
+					<textarea part="message-input" placeholder="Message..."></textarea>
 				</div>
-				<div class="actions">
+				<div class="row actions">
 					<button part="insert-image">Insert Picture</button>
 					<button part="add-below">New message below</button>
-					<button part="delete" style="margin-left:auto">Delete</button>
 				</div>
 			</div>
 		`;
 		this.shadowRoot.addEventListener('click', this._onClick);
 		this.shadowRoot.addEventListener('input', this._onInput);
+
+		// Listen for changes on the sender switch
+		const senderSwitch = this.shadowRoot.querySelector('sender-switch');
+		if (senderSwitch) {
+			senderSwitch.addEventListener('change', (e) => {
+				this.#emit('editor:update', {
+					id: this.messageId,
+					patch: { sender: e.detail.checked ? 'self' : 'other' },
+				});
+			});
+		}
+
 		this.#syncFromAttrs();
 	}
 
@@ -113,10 +114,15 @@ class MessageCard extends HTMLElement {
 
 	#syncFromAttrs() {
 		const textarea = this.shadowRoot.querySelector('textarea');
-		const select = this.shadowRoot.querySelector('select');
+		const senderSwitch = this.shadowRoot.querySelector('sender-switch');
 		const date = this.shadowRoot.querySelector('input[type="datetime-local"]');
 		if (textarea && textarea.value !== this.text) textarea.value = this.text;
-		if (select && select.value !== this.sender) select.value = this.sender;
+		if (senderSwitch) {
+			const isSelf = this.sender === 'self';
+			if (senderSwitch.checked !== isSelf) {
+				senderSwitch.checked = isSelf;
+			}
+		}
 		if (date) {
 			// Convert ISO to local datetime-local format safely
 			const iso = this.timestamp;
@@ -142,11 +148,6 @@ class MessageCard extends HTMLElement {
 			this.#emit('editor:update', {
 				id: this.messageId,
 				patch: { message: target.value },
-			});
-		} else if (target.matches('select')) {
-			this.#emit('editor:update', {
-				id: this.messageId,
-				patch: { sender: target.value },
 			});
 		} else if (target.matches('input[type="datetime-local"]')) {
 			const value = target.value;

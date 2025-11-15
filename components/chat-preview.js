@@ -1,4 +1,6 @@
 import { store } from './store.js';
+import './sender-switch.js';
+import { html } from '../utils/template.js';
 
 /**
  * @typedef {Object} ChatImage
@@ -39,7 +41,7 @@ class ChatPreview extends HTMLElement {
 	}
 
 	connectedCallback() {
-		this.shadowRoot.innerHTML = /* html */ `
+		this.shadowRoot.innerHTML = html`
 			<style>
 				*,
 				*::before,
@@ -60,7 +62,7 @@ class ChatPreview extends HTMLElement {
 					justify-content: space-between;
 					min-height: 100%;
 
-					line-height: 1.2;
+					line-height: var(--line-height);
 				}
 
 				.message-container {
@@ -146,7 +148,7 @@ class ChatPreview extends HTMLElement {
 
 				.input-container {
 					justify-content: stretch;
-					border: 1px solid var(--input-border-color);
+					border: 1px solid var(--border-color);
 					padding-left: var(--message-padding-inline);
 					padding-right: var(--tight-padding);
 					border-radius: 1.3rem;
@@ -200,42 +202,6 @@ class ChatPreview extends HTMLElement {
 					/* Hide send button on non-touch devices */
 					body:not(.touch-screen) & .send-button {
 						display: none;
-					}
-				}
-
-				.sender-switch-container {
-					position: relative;
-					flex-shrink: 0;
-					width: calc(2lh + var(--message-padding-block) * 2);
-					height: calc(1lh + var(--message-padding-block) * 2);
-					background-color: var(--recipient-color);
-					border-radius: var(--border-radius);
-					cursor: pointer;
-					transition: background-color 0.3s ease-in-out;
-
-					&:has(input:checked) {
-						background-color: var(--native-sender-color);
-					}
-
-					input {
-						opacity: 0;
-						height: 0;
-						width: 0;
-					}
-
-					.switch-thumb {
-						position: absolute;
-						left: var(--message-padding-block);
-						top: var(--message-padding-block);
-						width: 1lh;
-						height: 1lh;
-						background-color: white;
-						border-radius: 50%;
-						transition: left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-					}
-
-					input:checked + .switch-thumb {
-						left: calc(var(--message-padding-block) + 1lh);
 					}
 				}
 
@@ -361,10 +327,7 @@ class ChatPreview extends HTMLElement {
 							</svg>
 						</button>
 					</div>
-					<label class="sender-switch-container">
-						<input type="checkbox" id="senderSwitch" checked />
-						<div class="switch-thumb"></div>
-					</label>
+					<sender-switch id="senderSwitch" checked></sender-switch>
 				</div>
 			</div>
 			<input
