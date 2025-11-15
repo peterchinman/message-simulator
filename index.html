@@ -6,28 +6,12 @@
     <meta name="description" content="Basic HTML/CSS/JS site skeleton" />
     <title>Message Simulator</title>
     <link rel="stylesheet" href="./styles.css" />
-    <style>
-      .split {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-        height: calc(var(--vh, 1dvh) * 100);
-        padding: 8px;
-        box-sizing: border-box;
-      }
-      @media (max-width: 900px) {
-        .split { grid-template-columns: 1fr; }
-      }
-      chat-editor, chat-preview {
-        min-height: 0;
-      }
-    </style>
   </head>
   <body>
-    <div id="app" class="split">
+    <main id="app" class="app-container">
       <chat-editor></chat-editor>
       <chat-preview></chat-preview>
-    </div>
+    </main>
     <script type="module" src="./components/chat-editor.js"></script>
     <script type="module" src="./components/chat-preview.js"></script>
   </body>

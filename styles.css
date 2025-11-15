@@ -14,7 +14,7 @@ A: I designed the message sipper to have whole number pixel sizes & offsets at 1
 
 :root {
   --font-size: 14px;
-  font-size: var(--font-size);
+  --font-family: -apple-system, BlinkMacSystemFont, sans-serif;
 
   --padding-inline: 1.5rem;
 
@@ -43,260 +43,31 @@ A: I designed the message sipper to have whole number pixel sizes & offsets at 1
     --padding-inline: .9rem;
     --message-padding-inline: calc(10rem / 14);
     --message-padding-block: calc(6rem / 14);
-
-    
   }
 }
 
 body {
   height: calc(var(--vh, 1dvh) * 100);
+  max-width: 100%;
 
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-family);
+  font-size: var(--font-size);
 
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.window {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  min-height: 100%;
+.app-container {
   width: 100%;
-  max-width: 80ch;
-  min-width: 375px;
-
-  line-height: 1.2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  height: calc(var(--vh, 1dvh) * 100);
 }
-
-.message-container {
-  display: flex;
-  flex-direction: column;
-  padding-inline: var(--padding-inline);
-  overflow-y: scroll;
-  padding-top: var(--message-spacing);
+@media (max-width: 900px) {
+  .app-container { grid-template-columns: 1fr; }
 }
-
-.message {
-  position: relative;
-  display: flex;
-  align-items: center;
-  padding-inline: var(--message-padding-inline);
-  padding-block: var(--message-padding-block);
-  border-radius: var(--border-radius);
-
-  max-width: 66%;
-
-  &.self {
-    background-color: var(--native-sender-color);
-    color: white;
-    fill: var(--native-sender-color);
-    align-self: end;
-    justify-content: flex-end;
-
-    .message-tail {
-      right: var(--message-tail-offset);
-    }
-  }
-
-  &.other {
-    background-color: var(--recipient-color);
-    color: black;
-    fill: var(--recipient-color);
-    align-self: start;
-
-    svg {
-      transform: scale(-1, 1);
-      left: var(--message-tail-offset);
-    }
-  }
-
-  &:not(:first-child) {
-    margin-top: var(--message-spacing);
-  }
-
-  &.self:has(+ .self),
-  &.other:has(+ .other) {
-    svg {
-      display: none;
-    }
-  }
-
-  &.self + .self,
-  &.other + .other {
-    margin-top: var(--consecutive-message-spacing);
-  }
-
-  svg {
-    position: absolute;
-    bottom: 0;
-    width: calc(10.5rem / 14);
-    height: calc(14rem / 14);
-  }
-}
-
-.bottom-area {
-  --tight-padding: calc(4rem / 14);
-  position: absolute;
-  bottom: 0;
-  display: flex;
-  width: 100%;
-  padding-inline: var(--padding-inline);
-  padding-block: 1rem;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 0.5rem;
-  background: hsl(0 0 100 / 0.7);
-  backdrop-filter: blur(20px);
-}
-
-.input-container {
-  justify-content: stretch;
-  border: 1px solid var(--input-border-color);
-  padding-left: var(--message-padding-inline);
-  padding-right: var(--tight-padding);
-  border-radius: 1.3rem;
-  flex-grow: 1;
-
-  display: flex;
-  align-items: center;
-
-  background: hsl(0 0 100 / 0.4);
-
-  .input {
-    all: unset;
-    max-width: 100%;
-    min-height: 1lh;
-    width: 100%;
-    overflow: hidden;
-    box-sizing: border-box;
-    overflow-wrap: break-word;
-    margin-block: var(--message-padding-block);
-  }
-
-  .send-button {
-    all: unset;
-    align-self: flex-end;
-    cursor: pointer;
-    color: white;
-    background-color: var(--native-sender-color);
-    min-height: calc(1lh + 2 * var(--message-padding-block) - 2 * var(--tight-padding));
-    min-width: calc(1lh + 2 * var(--message-padding-block) - 2 * var(--tight-padding));
-    border-radius: 50%;
-    margin-block: var(--tight-padding);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    svg {
-      height: calc(14rem / 14);
-      width: calc(14rem / 14);
-    }
-    /* padding: 0.3rem; */
-  }
-
-  .input:placeholder-shown + .send-button {
-    display: none;
-  }
-
-  /* Hide send button on non-touch devices */
-  body:not(.touch-screen) & .send-button {
-    display: none;
-  }
-}
-
-.sender-switch-container {
-  position: relative;
-  flex-shrink: 0;
-  width: calc(2lh + var(--message-padding-block) * 2);
-  height: calc(1lh + var(--message-padding-block) * 2);
-  background-color: var(--recipient-color);
-  border-radius: var(--border-radius);
-  cursor: pointer;
-  transition: background-color 0.3s ease-in-out;
-
-  &:has(input:checked) {
-    background-color: var(--native-sender-color);
-  }
-
-  input {
-    opacity: 0;
-    height: 0;
-    width: 0;
-  }
-
-  .switch-thumb {
-    position: absolute;
-    left: var(--message-padding-block);
-    top: var(--message-padding-block);
-    width: 1lh;
-    height: 1lh;
-    background-color: white;
-    border-radius: 50%;
-    transition: left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  }
-
-  input:checked + .switch-thumb {
-    left: calc(var(--message-padding-block) + 1lh);
-  }
-}
-
-.options-container {
-  position: relative;
-  min-width: var(--single-line-message-height);
-  min-height: var(--single-line-message-height);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: color-mix(in srgb, var(--recipient-color) 80%, transparent);
-  border: 1px solid transparent;
-  border-radius: 100%;
-
-  color: #7e7f86;
-
-  input {
-    position: absolute;
-    opacity: 0;
-    height: 0;
-    width: 0;
-  }
-
-  .options-menu {
-    display: none;
-    position: absolute;
-    bottom: var(--single-line-message-height);
-    left: 0;
-    min-width: max-content;
-    color: black;
-
-    padding-inline: 0.3rem;
-    padding-block: 0.3rem;
-
-    background-color: var(--dropdown-background);
-    border: 1px solid var(--dropdown-border);
-    border-radius: 0.4rem;
-
-    filter: drop-shadow(0 0 0.7rem rgba(0, 0, 0, 0.3));
-
-    .options-item {
-      padding-inline: 0.6rem;
-      padding-block: 0.3rem;
-      border-radius: 0.3rem;
-    }
-
-    .options-item:hover {
-      color: white;
-      background-color: color-mix(
-        in oklab,
-        var(--dropdown-background) 20%,
-        var(--native-sender-color) 80%
-      );
-    }
-  }
-
-  input:checked + .options-menu {
-    display: block;
-  }
+chat-editor, chat-preview {
+  min-height: 0;
 }
