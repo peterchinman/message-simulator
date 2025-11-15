@@ -180,6 +180,18 @@ class ChatEditor extends HTMLElement {
 		// Add show-actions to the newly focused card
 		card.classList.add('show-actions');
 		this._lastFocusedCard = card;
+
+		// Dispatch event to scroll to this message in chat-preview
+		const messageId = card.getAttribute('message-id');
+		if (messageId) {
+			this.dispatchEvent(
+				new CustomEvent('editor:focus-message', {
+					detail: { id: messageId },
+					bubbles: true,
+					composed: true,
+				}),
+			);
+		}
 	}
 
 	_onDelegated(e) {

@@ -29,6 +29,8 @@ const isIOS =
 	(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
 class ChatPreview extends HTMLElement {
+	static FLASH_DURATION_MS = 750;
+
 	constructor() {
 		super();
 		this.attachShadow({ mode: 'open' });
@@ -37,6 +39,7 @@ class ChatPreview extends HTMLElement {
 		this._onInput = this._onInput.bind(this);
 		this._sendNow = this._sendNow.bind(this);
 		this._scheduleShrinkWrap = this._scheduleShrinkWrap.bind(this);
+		this._onEditorFocusMessage = this._onEditorFocusMessage.bind(this);
 		this._shrinkWrapFrame = null;
 	}
 
@@ -66,7 +69,7 @@ class ChatPreview extends HTMLElement {
 					line-height: var(--line-height);
 				}
 
-				.message-container {
+				.message-list {
 					display: flex;
 					flex-direction: column;
 					padding-inline: var(--padding-inline);
@@ -129,6 +132,22 @@ class ChatPreview extends HTMLElement {
 						bottom: 0;
 						width: calc(10.5rem / 14);
 						height: calc(14rem / 14);
+					}
+
+					&.flash {
+						animation: flash ${ChatPreview.FLASH_DURATION_MS / 1000}s ease-out;
+					}
+				}
+
+				@keyframes flash {
+					0% {
+						filter: invert(0);
+					}
+					50% {
+						filter: invert(20%);
+					}
+					100% {
+						filter: invert(0);
 					}
 				}
 
@@ -278,7 +297,7 @@ class ChatPreview extends HTMLElement {
 				</defs>
 			</svg>
 			<div class="window">
-				<div class="message-container"></div>
+				<div class="message-list"></div>
 				<div class="bottom-area">
 					<label class="options-container">
 						<svg
@@ -340,7 +359,7 @@ class ChatPreview extends HTMLElement {
 		`;
 
 		this.$ = {
-			container: this.shadowRoot.querySelector('.message-container'),
+			container: this.shadowRoot.querySelector('.message-list'),
 			bottom: this.shadowRoot.querySelector('.bottom-area'),
 			input: this.shadowRoot.querySelector('.input'),
 			send: this.shadowRoot.querySelector('.send-button'),
@@ -420,6 +439,12 @@ class ChatPreview extends HTMLElement {
 		// Store events
 		store.addEventListener('messages:changed', this._onStoreChange);
 
+		// Listen for editor focus events to scroll to messages
+		document.addEventListener(
+			'editor:focus-message',
+			this._onEditorFocusMessage,
+		);
+
 		// Initial render
 		this.#renderAll(store.getMessages());
 		this._shrinkWrapInit();
@@ -428,6 +453,10 @@ class ChatPreview extends HTMLElement {
 
 	disconnectedCallback() {
 		store.removeEventListener('messages:changed', this._onStoreChange);
+		document.removeEventListener(
+			'editor:focus-message',
+			this._onEditorFocusMessage,
+		);
 	}
 
 	/**
@@ -439,6 +468,7 @@ class ChatPreview extends HTMLElement {
 		switch (reason) {
 			case 'add':
 				this.#renderAdd(message, messages);
+				this._scrollToBottom();
 				break;
 			case 'update':
 				this.#renderUpdate(message, messages);
@@ -448,9 +478,9 @@ class ChatPreview extends HTMLElement {
 				break;
 			default:
 				this.#renderReset(messages);
+				this._scrollToBottom();
 				break;
 		}
-		this._scrollToBottom();
 	}
 
 	/**
@@ -551,6 +581,49 @@ class ChatPreview extends HTMLElement {
 	_scrollToBottom(behavior = 'auto') {
 		const container = this.$.container;
 		container.scrollTo({ top: container.scrollHeight, behavior });
+	}
+
+	/**
+	 * Handle editor focus message event and scroll to the corresponding message.
+	 * @param {CustomEvent<{id: string}>} e
+	 */
+	_onEditorFocusMessage(e) {
+		const { id } = e.detail || {};
+		if (!id) return;
+
+		const messageNode = this.#findFirstNodeByMessageId(id);
+		if (messageNode && this.$.container) {
+			// Use requestAnimationFrame to ensure the DOM is ready
+			requestAnimationFrame(() => {
+				const container = this.$.container;
+				// Get bounding rects relative to viewport
+				const nodeRect = messageNode.getBoundingClientRect();
+				const containerRect = container.getBoundingClientRect();
+
+				// Calculate the current scroll position plus the relative position
+				// to center the message in the container
+				const relativeTop =
+					nodeRect.top - containerRect.top + container.scrollTop;
+				const messageHeight = nodeRect.height;
+				const containerHeight = containerRect.height;
+				const scrollTop = relativeTop - containerHeight / 2 + messageHeight / 2;
+
+				container.scrollTo({
+					top: Math.max(
+						0,
+						Math.min(scrollTop, container.scrollHeight - containerHeight),
+					),
+					behavior: 'smooth',
+				});
+
+				// Add flash effect to the message
+				messageNode.classList.add('flash');
+				// Remove the flash class after animation completes
+				setTimeout(() => {
+					messageNode.classList.remove('flash');
+				}, ChatPreview.FLASH_DURATION_MS);
+			});
+		}
 	}
 
 	/**
