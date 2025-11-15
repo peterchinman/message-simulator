@@ -1,5 +1,26 @@
-// <chat-preview> full implementation (refactors ChatApp into a Web Component)
 import { store } from './store.js';
+
+/**
+ * @typedef {Object} ChatImage
+ * @property {string} src
+ * @property {string} [alt]
+ */
+
+/**
+ * @typedef {Object} ChatMessage
+ * @property {string} id
+ * @property {'self'|'other'} sender
+ * @property {string} [message]
+ * @property {ChatImage[]} [images]
+ * @property {string} [timestamp]
+ */
+
+/**
+ * @typedef {Object} StoreChangeDetail
+ * @property {'add'|'update'|'delete'|string} [reason]
+ * @property {ChatMessage} [message]
+ * @property {ChatMessage[]} [messages]
+ */
 
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
@@ -11,6 +32,8 @@ class ChatPreview extends HTMLElement {
 		this._onKeyDown = this._onKeyDown.bind(this);
 		this._onInput = this._onInput.bind(this);
 		this._sendNow = this._sendNow.bind(this);
+		this._scheduleShrinkWrap = this._scheduleShrinkWrap.bind(this);
+		this._shrinkWrapFrame = null;
 	}
 
 	connectedCallback() {
@@ -132,25 +155,57 @@ class ChatPreview extends HTMLElement {
 		store.removeEventListener('messages:changed', this._onStoreChange);
 	}
 
+	/**
+	 * Handle store changes and render appropriate UI updates.
+	 * @param {CustomEvent<StoreChangeDetail>} e
+	 */
 	_onStoreChange(e) {
-		this.#renderAll(e.detail.messages);
-		this._shrinkWrapResize();
+		const { reason, message, messages } = e.detail || {};
+		switch (reason) {
+			case 'add':
+				this.#renderAdd(message, messages);
+				break;
+			case 'update':
+				this.#renderUpdate(message, messages);
+				break;
+			case 'delete':
+				this.#renderDelete(message);
+				break;
+			default:
+				this.#renderReset(messages);
+				break;
+		}
 		this._scrollToBottom();
 	}
 
+	/**
+	 * Handle keyboard events on the textarea.
+	 * Sends the message on Enter (without Shift) on non‑iOS devices.
+	 * @param {KeyboardEvent} event
+	 */
 	_onKeyDown(event) {
-		if (event.key === 'Enter' && !event.shiftKey) {
+		if (event.key === 'Enter' && !event.shiftKey && !isIOS) {
 			event.preventDefault();
 			this._sendNow(event);
 		}
 	}
 
+	/**
+	 * Auto-resize the textarea height to fit content.
+	 * @param {InputEvent|Event} event
+	 */
 	_onInput(event) {
 		event.target.style.height = 'auto';
 		event.target.style.height = `${event.target.scrollHeight}px`;
 	}
 
-	async _sendNow(event) {
+	/**
+	 * Create a new message and send it immediately.
+	 * Clears the input and schedules shrink-wrap.
+	 * @param {Event} event
+	 * @returns {void}
+	 */
+	_sendNow(event) {
 		event.preventDefault();
 		const text = this.$.input.value;
 		const isSender = this.$.senderSwitch.checked;
@@ -163,7 +218,6 @@ class ChatPreview extends HTMLElement {
 		});
 		this.$.input.value = '';
 		this.$.input.style.height = 'auto';
-		this._shrinkWrapResize();
 	}
 
 	_clearChat() {
@@ -172,6 +226,7 @@ class ChatPreview extends HTMLElement {
 		}
 	}
 
+	/** Export chat as a downloadable JSON file. */
 	_exportChat() {
 		const dataStr = store.exportJson(true);
 		const dataBlob = new Blob([dataStr], { type: 'application/json' });
@@ -183,6 +238,10 @@ class ChatPreview extends HTMLElement {
 		URL.revokeObjectURL(url);
 	}
 
+	/**
+	 * Import chat from a selected JSON file.
+	 * @param {Event & { target: HTMLInputElement }} e
+	 */
 	_importChat(e) {
 		const file = e.target.files && e.target.files[0];
 		if (!file) return;
@@ -199,19 +258,36 @@ class ChatPreview extends HTMLElement {
 		reader.readAsText(file);
 	}
 
+	/**
+	 * Determine whether the scroll is near the bottom of the container.
+	 * @returns {boolean}
+	 */
 	_isNearBottom() {
 		const container = this.$.container;
 		return container.scrollHeight - container.scrollTop - container.clientHeight < 10;
 	}
 
+	/**
+	 * Scroll the message container to the bottom.
+	 * @param {'auto'|'smooth'} [behavior='auto']
+	 */
 	_scrollToBottom(behavior = 'auto') {
 		const container = this.$.container;
 		container.scrollTo({ top: container.scrollHeight, behavior });
 	}
 
-	#createBubble(message, sender) {
+	/**
+	 * Create a text bubble element.
+	 * @param {string} message
+	 * @param {'self'|'other'} sender
+	 * @param {string|number} [id]
+	 * @returns {HTMLDivElement}
+	 * @private
+	 */
+	#createBubble(message, sender, id) {
 		const messageDiv = document.createElement('div');
 		messageDiv.className = `message ${sender}`;
+		if (id) messageDiv.dataset.id = String(id);
 
 		const span = document.createElement('span');
 		span.textContent = message;
@@ -232,41 +308,178 @@ class ChatPreview extends HTMLElement {
 		return messageDiv;
 	}
 
+	/**
+	 * Create an image message element.
+	 * @param {ChatImage} img
+	 * @param {'self'|'other'} sender
+	 * @param {string|number} [id]
+	 * @returns {HTMLDivElement}
+	 * @private
+	 */
+	#createImage(img, sender, id) {
+		const imgDiv = document.createElement('div');
+		imgDiv.className = `message ${sender}`;
+		if (id) imgDiv.dataset.id = String(id);
+		const image = document.createElement('img');
+		image.src = img.src;
+		image.alt = img.alt || '';
+		image.style.maxWidth = '240px';
+		image.style.height = 'auto';
+		const svgNS = 'http://www.w3.org/2000/svg';
+		const xlinkNS = 'http://www.w3.org/1999/xlink';
+		const svg = document.createElementNS(svgNS, 'svg');
+		svg.classList.add('message-tail');
+		svg.style.fill = 'inherit';
+		const use = document.createElementNS(svgNS, 'use');
+		use.setAttributeNS(xlinkNS, 'href', '#message-tail');
+		svg.appendChild(use);
+		imgDiv.appendChild(image);
+		imgDiv.appendChild(svg);
+		return imgDiv;
+	}
+
+	/**
+	 * Render DOM nodes for a given message (text and/or images).
+	 * @param {ChatMessage} [m]
+	 * @returns {HTMLElement[]}
+	 * @private
+	 */
+	#renderMessageNodes(m) {
+		const nodes = [];
+		const sender = m && (m.sender === 'self' || m.sender === 'other') ? m.sender : 'self';
+		const id = m && m.id ? m.id : '';
+		if (m && Array.isArray(m.images) && m.images.length > 0) {
+			for (const img of m.images) {
+				nodes.push(this.#createImage(img, sender, id));
+			}
+		}
+		if (m && typeof m.message === 'string' && m.message.length > 0) {
+			nodes.push(this.#createBubble(m.message, sender, id));
+		}
+		return nodes;
+	}
+
+	/**
+	 * Find the first DOM node associated with a message id.
+	 * @param {string} id
+	 * @returns {HTMLElement|null}
+	 * @private
+	 */
+	#findFirstNodeByMessageId(id) {
+		const container = this.$.container;
+		if (!container) return null;
+		for (let i = 0; i < container.children.length; i++) {
+			const child = container.children[i];
+			if (child && child.dataset && child.dataset.id === id) {
+				return child;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Remove all DOM nodes associated with a message id.
+	 * @param {string} id
+	 * @private
+	 */
+	#removeMessageNodes(id) {
+		const container = this.$.container;
+		if (!container) return;
+		const toRemove = [];
+		for (let i = 0; i < container.children.length; i++) {
+			const child = container.children[i];
+			if (child && child.dataset && child.dataset.id === id) {
+				toRemove.push(child);
+			}
+		}
+		for (const el of toRemove) el.remove();
+	}
+
+	/**
+	 * Insert DOM nodes for a given message at its correct index.
+	 * @param {ChatMessage} message
+	 * @param {ChatMessage[]} [messages]
+	 * @returns {HTMLElement[]}
+	 * @private
+	 */
+	#insertMessageNodesAtIndex(message, messages) {
+		const container = this.$.container;
+		if (!container || !message) return [];
+		const nodes = this.#renderMessageNodes(message);
+		if (nodes.length === 0) return [];
+		const idx = Array.isArray(messages) ? messages.findIndex(m => m && m.id === message.id) : -1;
+		let referenceNode = null;
+		if (idx !== -1) {
+			const next = messages[idx + 1];
+			if (next && next.id) {
+				referenceNode = this.#findFirstNodeByMessageId(next.id);
+			}
+		}
+		for (const n of nodes) {
+			if (referenceNode) container.insertBefore(n, referenceNode);
+			else container.appendChild(n);
+		}
+		return nodes;
+	}
+
+	/**
+	 * Render newly added message.
+	 * @param {ChatMessage} message
+	 * @param {ChatMessage[]} [messages]
+	 * @private
+	 */
+	#renderAdd(message, messages) {
+		const nodes = this.#insertMessageNodesAtIndex(message, messages);
+		this._shrinkWrapFor(nodes);
+	}
+
+	/**
+	 * Render an updated message.
+	 * @param {ChatMessage} message
+	 * @param {ChatMessage[]} [messages]
+	 * @private
+	 */
+	#renderUpdate(message, messages) {
+		if (!message) return;
+		this.#removeMessageNodes(message.id);
+		const nodes = this.#insertMessageNodesAtIndex(message, messages);
+		this._shrinkWrapFor(nodes);
+	}
+
+	/**
+	 * Render deletion of a message.
+	 * @param {ChatMessage} message
+	 * @private
+	 */
+	#renderDelete(message) {
+		if (!message) return;
+		this.#removeMessageNodes(message.id);
+	}
+
+	/**
+	 * Reset the rendering with a full message list.
+	 * @param {ChatMessage[]} [messages]
+	 * @private
+	 */
+	#renderReset(messages) {
+		this.#renderAll(messages || []);
+		this._scheduleShrinkWrap();
+	}
+
+	/**
+	 * Render all messages.
+	 * @param {ChatMessage[]} messages
+	 * @private
+	 */
 	#renderAll(messages) {
 		const container = this.$.container;
 		container.innerHTML = '';
 		for (const m of messages) {
-			const sender = m.sender || 'self';
-			if (Array.isArray(m.images) && m.images.length > 0) {
-				for (const img of m.images) {
-					const imgDiv = document.createElement('div');
-					imgDiv.className = `message ${sender}`;
-					const image = document.createElement('img');
-					image.src = img.src;
-					image.alt = img.alt || '';
-					image.style.maxWidth = '240px';
-					image.style.height = 'auto';
-					const svgNS = 'http://www.w3.org/2000/svg';
-					const xlinkNS = 'http://www.w3.org/1999/xlink';
-					const svg = document.createElementNS(svgNS, 'svg');
-					svg.classList.add('message-tail');
-					svg.style.fill = 'inherit';
-					const use = document.createElementNS(svgNS, 'use');
-					use.setAttributeNS(xlinkNS, 'href', '#message-tail');
-					svg.appendChild(use);
-					imgDiv.appendChild(image);
-					imgDiv.appendChild(svg);
-					container.appendChild(imgDiv);
-				}
-			}
-			if (typeof m.message === 'string' && m.message.length > 0) {
-				const bubble = this#createBubble(m.message, sender);
-				container.appendChild(bubble);
-			}
+			const nodes = this.#renderMessageNodes(m);
+			for (const n of nodes) container.appendChild(n);
 		}
 	}
 
-	// MessageShrinkWrap (scoped)
 	_shrinkWrapInit() {
 		const run = () => {
 			this._shrinkWrapUnwrapAll();
@@ -277,6 +490,32 @@ class ChatPreview extends HTMLElement {
 		if (document.fonts && document.fonts.ready) document.fonts.ready.then(run);
 		window.addEventListener('resize', this._debounce(() => this._shrinkWrapResize(), 150));
 	}
+	/**
+	 * Apply shrink-wrap to a specific set of nodes.
+	 * @param {HTMLElement[]} nodes
+	 */
+	_shrinkWrapFor(nodes) {
+		if (!nodes || nodes.length === 0) return;
+		for (const el of nodes) {
+			if (el && el.classList && el.classList.contains('message')) {
+				el.style.width = '';
+				el.style.boxSizing = '';
+			}
+		}
+		requestAnimationFrame(() => {
+			for (const el of nodes) {
+				if (!el || !el.classList || !el.classList.contains('message')) continue;
+				const span = el.querySelector('span');
+				if (!span) continue;
+				const range = document.createRange();
+				range.selectNodeContents(span);
+				const { width } = range.getBoundingClientRect();
+				el.style.width = `${width}px`;
+				el.style.boxSizing = 'content-box';
+			}
+		});
+	}
+	/** Apply shrink-wrap to all message bubbles. */
 	_shrinkWrapAll() {
 		this.shadowRoot.querySelectorAll('.message').forEach(el => {
 			const span = el.querySelector('span');
@@ -288,16 +527,33 @@ class ChatPreview extends HTMLElement {
 			el.style.boxSizing = 'content-box';
 		});
 	}
+	/** Remove shrink-wrap styles from all message bubbles. */
 	_shrinkWrapUnwrapAll() {
 		this.shadowRoot.querySelectorAll('.message').forEach(el => {
 			el.style.width = '';
 			el.style.boxSizing = '';
 		});
 	}
+	/** Schedule a shrink-wrap recalculation on the next animation frame. */
+	_scheduleShrinkWrap() {
+		if (this._shrinkWrapFrame) cancelAnimationFrame(this._shrinkWrapFrame);
+		this._shrinkWrapFrame = requestAnimationFrame(() => {
+			this._shrinkWrapFrame = null;
+			this._shrinkWrapResize();
+		});
+	}
+	/** Recalculate shrink-wrap widths for all bubbles. */
 	_shrinkWrapResize() {
 		this._shrinkWrapUnwrapAll();
 		requestAnimationFrame(() => this._shrinkWrapAll());
 	}
+	/**
+	 * Return a debounced version of a function.
+	 * @template {any[]} TArgs
+	 * @param {(...args: TArgs) => void} func
+	 * @param {number} wait
+	 * @returns {(...args: TArgs) => void}
+	 */
 	_debounce(func, wait) {
 		let timeout;
 		return (...args) => {

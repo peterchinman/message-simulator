@@ -91,7 +91,21 @@ class ChatEditor extends HTMLElement {
 	}
 
 	_onStoreChange(e) {
-		this.#render(e.detail.messages);
+		const { reason, message, messages } = e.detail || {};
+		switch (reason) {
+			case 'add':
+				this.#onAdd(message, messages);
+				break;
+			case 'update':
+				this.#onUpdate(message);
+				break;
+			case 'delete':
+				this.#onDelete(message);
+				break;
+			default:
+				this.#render(messages);
+				break;
+		}
 	}
 
 	_onDelegated(e) {
@@ -133,21 +147,117 @@ class ChatEditor extends HTMLElement {
 			if (window && window.crypto && typeof window.crypto.randomUUID === 'function') {
 				return window.crypto.randomUUID();
 			}
-		} catch (_e) {}
+		} catch (_e) { }
 		return 'img_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
 	}
 
-	#render(messages) {
-		const body = this.shadowRoot.querySelector('.body');
-		if (!body) return;
-		body.innerHTML = '';
-		for (const m of messages) {
-			const card = document.createElement('message-card');
+	#queryCardById(id) {
+		return this.shadowRoot.querySelector(`.editor-card[message-id="${id}"]`);
+	}
+
+	#ensureCardForMessage(m) {
+		let card = this.#queryCardById(m.id);
+		if (!card) {
+			card = document.createElement('message-card');
+			card.classList.add('editor-card');
 			card.setAttribute('message-id', m.id);
-			card.setAttribute('sender', m.sender || 'self');
-			if (m.timestamp) card.setAttribute('timestamp', m.timestamp);
-			card.setAttribute('text', typeof m.message === 'string' ? m.message : '');
-			body.appendChild(card);
+		}
+		return card;
+	}
+
+	#updateCardAttrs(card, m) {
+		const ensureAttr = (el, name, value) => {
+			if (value == null || value === '') {
+				if (el.hasAttribute(name)) el.removeAttribute(name);
+				return;
+			}
+			if (el.getAttribute(name) !== value) {
+				el.setAttribute(name, value);
+			}
+		};
+		const textValue = typeof m.message === 'string' ? m.message : '';
+		ensureAttr(card, 'sender', m.sender || 'self');
+		ensureAttr(card, 'timestamp', m.timestamp || '');
+		ensureAttr(card, 'text', textValue);
+	}
+
+	#insertCardAtIndex(card, index) {
+		const body = this.shadowRoot && this.shadowRoot.querySelector('.body');
+		if (!body) return;
+		const cards = body.querySelectorAll('.editor-card');
+		const referenceNode = cards[index] || null;
+		if (card !== referenceNode) {
+			body.insertBefore(card, referenceNode);
+		}
+	}
+
+	#onAdd(message, messages) {
+		if (!message || !Array.isArray(messages)) {
+			this.#render(messages || []);
+			return;
+		}
+		const index = messages.findIndex(m => m && m.id === message.id);
+		if (index === -1) {
+			this.#render(messages);
+			return;
+		}
+		const card = this.#ensureCardForMessage(message);
+		this.#updateCardAttrs(card, message);
+		this.#insertCardAtIndex(card, index);
+	}
+
+	#onUpdate(message) {
+		if (!message || !message.id) return;
+		const card = this.#queryCardById(message.id);
+		if (!card) return;
+		this.#updateCardAttrs(card, message);
+	}
+
+	#onDelete(message) {
+		if (!message || !message.id) return;
+		const card = this.#queryCardById(message.id);
+		if (card && card.remove) card.remove();
+	}
+
+	#render(messages) {
+		const body = this.shadowRoot && this.shadowRoot.querySelector('.body');
+		if (!body) return;
+		const existing = new Map(
+			Array.from(this.shadowRoot.querySelectorAll('.editor-card'))
+				.filter((node) => node instanceof HTMLElement)
+				.map((node) => [node.getAttribute('message-id'), node])
+		);
+
+		const ensureAttr = (el, name, value) => {
+			if (value == null || value === '') {
+				if (el.hasAttribute(name)) el.removeAttribute(name);
+				return;
+			}
+			if (el.getAttribute(name) !== value) {
+				el.setAttribute(name, value);
+			}
+		};
+
+		messages.forEach((m, index) => {
+			let card = existing.get(m.id);
+			if (!card) {
+				card = document.createElement('message-card');
+				card.classList.add('editor-card');
+				card.setAttribute('message-id', m.id);
+			}
+			const referenceNode = this.shadowRoot.querySelectorAll('.editor-card')[index] || null;
+			if (card !== referenceNode) {
+				body.insertBefore(card, referenceNode);
+			}
+			const textValue = typeof m.message === 'string' ? m.message : '';
+			ensureAttr(card, 'sender', m.sender || 'self');
+			ensureAttr(card, 'timestamp', m.timestamp || '');
+			ensureAttr(card, 'text', textValue);
+			existing.delete(m.id);
+		});
+
+		for (const leftover of existing.values()) {
+			leftover.remove();
 		}
 	}
 }

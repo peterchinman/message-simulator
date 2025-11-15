@@ -126,10 +126,14 @@ class MessageStore extends EventTarget {
 		try {
 			parsed = typeof json === 'string' ? JSON.parse(json) : json;
 		} catch (_e) {
-			throw new Error('Invalid JSON');
+			return console.error ('Invalid JSON');
+			// TODO: Handle this error
 		}
 		let imported = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.messages) ? parsed.messages : null);
-		if (!imported) throw new Error('Invalid format');
+		if (!imported) {
+			return console.error ('Invalid format');
+			// TODO: Handle this error`
+		}
 		imported = imported.map(m => {
 			if (m && typeof m.timestamp === 'number') {
 				return { ...m, timestamp: new Date(m.timestamp).toISOString() };
