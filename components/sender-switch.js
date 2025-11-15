@@ -14,20 +14,24 @@ class SenderSwitch extends HTMLElement {
 	connectedCallback() {
 		this.shadowRoot.innerHTML = html`
 			<style>
+				:host {
+				}
 				.sender-switch-container {
+					font-size: var(--font-size);
+
 					display: block;
 					position: relative;
 					flex-shrink: 0;
 					line-height: var(--line-height);
-					width: calc(2lh + var(--message-padding-block) * 2);
-					height: calc(1lh + var(--message-padding-block) * 2);
-					background-color: var(--recipient-color);
-					border-radius: var(--border-radius);
+					width: calc(48rem / 14);
+					height: calc(32rem / 14);
+					background-color: var(--color-recipient);
+					border-radius: calc(16rem / 14);
 					cursor: pointer;
 					transition: background-color 0.3s ease-in-out;
 
 					&:has(input:checked) {
-						background-color: var(--native-sender-color);
+						background-color: var(--color-native-sender);
 					}
 
 					input {
@@ -38,17 +42,20 @@ class SenderSwitch extends HTMLElement {
 
 					.switch-thumb {
 						position: absolute;
-						left: var(--message-padding-block);
-						top: var(--message-padding-block);
-						width: 1lh;
-						height: 1lh;
-						background-color: white;
+						left: calc(2rem / 14);
+						top: calc(2rem / 14);
+						width: calc(28rem / 14);
+						height: calc(28rem / 14);
+						background-color: var(--color-page);
 						border-radius: 50%;
 						transition: left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+						
+						filter: drop-shadow(4px 0 4px var(--color-drop-shadow));
 					}
 
 					input:checked + .switch-thumb {
-						left: calc(var(--message-padding-block) + 1lh);
+						left: calc(18rem / 14);
+						filter: drop-shadow(-4px 0 4px var(--color-drop-shadow-intense));
 					}
 				}
 			</style>

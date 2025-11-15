@@ -61,6 +61,7 @@ class ChatPreview extends HTMLElement {
 					flex-direction: column;
 					justify-content: space-between;
 					min-height: 100%;
+					max-height: 100%;
 
 					line-height: var(--line-height);
 				}
@@ -84,9 +85,9 @@ class ChatPreview extends HTMLElement {
 					max-width: 66%;
 
 					&.self {
-						background-color: var(--native-sender-color);
+						background-color: var(--color-native-sender);
 						color: white;
-						fill: var(--native-sender-color);
+						fill: var(--color-native-sender);
 						align-self: end;
 						justify-content: flex-end;
 
@@ -96,9 +97,9 @@ class ChatPreview extends HTMLElement {
 					}
 
 					&.other {
-						background-color: var(--recipient-color);
+						background-color: var(--color-recipient);
 						color: black;
-						fill: var(--recipient-color);
+						fill: var(--color-recipient);
 						align-self: start;
 
 						svg {
@@ -148,7 +149,7 @@ class ChatPreview extends HTMLElement {
 
 				.input-container {
 					justify-content: stretch;
-					border: 1px solid var(--border-color);
+					border: 1px solid var(--color-border);
 					padding-left: var(--message-padding-inline);
 					padding-right: var(--tight-padding);
 					border-radius: 1.3rem;
@@ -157,7 +158,7 @@ class ChatPreview extends HTMLElement {
 					display: flex;
 					align-items: center;
 
-					background: hsl(0 0 100 / 0.4);
+					background: var(--color-page);
 
 					.input {
 						all: unset;
@@ -175,7 +176,7 @@ class ChatPreview extends HTMLElement {
 						align-self: flex-end;
 						cursor: pointer;
 						color: white;
-						background-color: var(--native-sender-color);
+						background-color: var(--color-native-sender);
 						min-height: calc(
 							1lh + 2 * var(--message-padding-block) - 2 * var(--tight-padding)
 						);
@@ -214,13 +215,13 @@ class ChatPreview extends HTMLElement {
 					justify-content: center;
 					background-color: color-mix(
 						in srgb,
-						var(--recipient-color) 80%,
+						var(--color-recipient) 80%,
 						transparent
 					);
 					border: 1px solid transparent;
 					border-radius: 100%;
 
-					color: #7e7f86;
+					color: var(--color-ink-subdued);
 
 					input {
 						position: absolute;
@@ -257,7 +258,7 @@ class ChatPreview extends HTMLElement {
 							background-color: color-mix(
 								in oklab,
 								var(--dropdown-background) 20%,
-								var(--native-sender-color) 80%
+								var(--color-native-sender) 80%
 							);
 						}
 					}

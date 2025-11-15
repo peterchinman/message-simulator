@@ -9,7 +9,9 @@
 /*
 Q: WTF are these sizing calcs with 14 in the denominator??
 
-A: I designed the message sipper to have whole number pixel sizes & offsets at 14px rem. `calc(_rem / 14)` is how you achieve a value that references a specific pixel value at that scale, while also being dynamic with rem size.
+A: I designed the message sipper to have whole number pixel sizes & offsets at 
+14px rem. `calc(xrem / 14)` is how you achieve a value that references a specific 
+pixel value (x) at that scale, while also being dynamic with rem size.
 */
 
 :root {
@@ -18,18 +20,25 @@ A: I designed the message sipper to have whole number pixel sizes & offsets at 1
 	--line-height: 1.2;
 
 	--padding-inline: 1.5rem;
+	
+	--color-page: white;
+	--color-ink: black;
+	--color-ink-subdued: #7E7F87;
 
-	--native-sender-color: #1285fe;
-	--recipient-color: #e6e5ec;
+	--color-native-sender: #1285fe;
+	--color-recipient: #e6e5ec;
 
 	--message-spacing: calc(8rem / 14);
 	--consecutive-message-spacing: calc(3rem / 14);
 
 	--border-radius: 1rem;
 
-	--border-color: #ddddde;
+	--color-border: #ddddde;
 	--dropdown-background: #ededed;
 	--dropdown-border: #b3b3b3;
+	
+	--color-drop-shadow: oklch(0 0 0 / 8%);
+	--color-drop-shadow-intense: oklch(0 0 0 / 16%);
 
 	--message-padding-inline: calc(8rem / 14);
 	--message-padding-block: calc(4rem / 14);
@@ -47,12 +56,15 @@ A: I designed the message sipper to have whole number pixel sizes & offsets at 1
 	}
 }
 
+html {
+  font-size: var(--font-size);
+}
+
 body {
 	height: calc(var(--vh, 1dvh) * 100);
 	max-width: 100%;
 
 	font-family: var(--font-family);
-	font-size: var(--font-size);
 
 	display: flex;
 	flex-direction: column;
@@ -74,4 +86,48 @@ body {
 chat-editor,
 chat-preview {
 	min-height: 0;
+}
+
+/* Tooltip styles - use with data-tooltip attribute */
+[data-tooltip] {
+	position: relative;
+	--tooltip-offset-x: 0px;
+	--tooltip-arrow-offset-x: 0px;
+}
+
+[data-tooltip]::after {
+	content: attr(data-tooltip);
+	position: absolute;
+	bottom: calc(100% + 8rem / 14);
+	left: 50%;
+	transform: translateX(calc(-50% + var(--tooltip-offset-x)));
+	background: var(--color-ink);
+	color: var(--color-page);
+	padding: calc(6rem / 14) calc(10rem / 14);
+	border-radius: calc(4rem / 14);
+	font-size: calc(12rem / 14);
+	white-space: nowrap;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.15s ease-in-out;
+	z-index: 1000;
+}
+
+[data-tooltip]::before {
+	content: '';
+	position: absolute;
+	bottom: calc(100% + 2rem / 14);
+	left: 50%;
+	transform: translateX(calc(-50% + var(--tooltip-arrow-offset-x)));
+	border: calc(4rem / 14) solid transparent;
+	border-top-color: var(--color-ink);
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.15s ease-in-out;
+	z-index: 1000;
+}
+
+[data-tooltip]:hover::after,
+[data-tooltip]:hover::before {
+	opacity: 1;
 }

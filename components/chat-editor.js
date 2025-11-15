@@ -2,13 +2,14 @@ import { store } from './store.js';
 import './message-card.js';
 import { html } from '../utils/template.js';
 
-
 class ChatEditor extends HTMLElement {
 	constructor() {
 		super();
 		this.attachShadow({ mode: 'open' });
 		this._onStoreChange = this._onStoreChange.bind(this);
 		this._onDelegated = this._onDelegated.bind(this);
+		this._onFocusIn = this._onFocusIn.bind(this);
+		this._lastFocusedCard = null;
 	}
 
 	connectedCallback() {
@@ -26,18 +27,20 @@ class ChatEditor extends HTMLElement {
 				}
 				.header {
 					padding: 8px 12px;
-					border-bottom: 1px solid #ddd;
-					font: 14px/1.4 system-ui;
+					border-bottom: 1px solid var(--color-border);
+					font-size: 14px;
 					display: flex;
 					gap: 8px;
 					align-items: center;
 				}
 				.body {
 					flex: 1;
+					display: flex;
+					flex-direction: column;
+					gap: calc(12rem / 14);
 					min-height: 0;
 					overflow: auto;
 					padding: 12px;
-					background: #fafafa;
 				}
 				button {
 					font: 12px system-ui;
@@ -80,6 +83,7 @@ class ChatEditor extends HTMLElement {
 		this.shadowRoot.addEventListener('editor:delete', this._onDelegated);
 		this.shadowRoot.addEventListener('editor:add-below', this._onDelegated);
 		this.shadowRoot.addEventListener('editor:insert-image', this._onDelegated);
+		this.shadowRoot.addEventListener('focusin', this._onFocusIn, true);
 		this.shadowRoot.getElementById('add-end').addEventListener('click', () => {
 			store.addMessage();
 		});
@@ -137,6 +141,7 @@ class ChatEditor extends HTMLElement {
 			'editor:insert-image',
 			this._onDelegated,
 		);
+		this.shadowRoot.removeEventListener('focusin', this._onFocusIn, true);
 		store.removeEventListener('messages:changed', this._onStoreChange);
 	}
 
@@ -156,6 +161,25 @@ class ChatEditor extends HTMLElement {
 				this.#render(messages);
 				break;
 		}
+	}
+
+	_onFocusIn(e) {
+		// Find the message-card element that contains the focused element
+		// Use composedPath to traverse shadow boundaries
+		const path = e.composedPath();
+		const card = path.find(
+			(el) => el instanceof HTMLElement && el.tagName === 'MESSAGE-CARD',
+		);
+		if (!card) return;
+
+		// Remove show-actions from the previously focused card
+		if (this._lastFocusedCard && this._lastFocusedCard !== card) {
+			this._lastFocusedCard.classList.remove('show-actions');
+		}
+
+		// Add show-actions to the newly focused card
+		card.classList.add('show-actions');
+		this._lastFocusedCard = card;
 	}
 
 	_onDelegated(e) {
@@ -266,6 +290,12 @@ class ChatEditor extends HTMLElement {
 		const card = this.#ensureCardForMessage(message);
 		this.#updateCardAttrs(card, message);
 		this.#insertCardAtIndex(card, index);
+		// Focus the newly created card's textarea
+		requestAnimationFrame(() => {
+			if (card && typeof card.focus === 'function') {
+				card.focus();
+			}
+		});
 	}
 
 	#onUpdate(message) {
