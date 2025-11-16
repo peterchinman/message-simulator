@@ -9,8 +9,8 @@
 /*
 Q: WTF are these sizing calcs with 14 in the denominator??
 
-A: I designed the message sipper to have whole number pixel sizes & offsets at 
-14px rem. `calc(xrem / 14)` is how you achieve a value that references a specific 
+A: I designed the message sipper to have whole number pixel sizes & offsets at
+14px rem. `calc(xrem / 14)` is how you achieve a value that references a specific
 pixel value (x) at that scale, while also being dynamic with rem size.
 */
 
@@ -20,10 +20,10 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 	--line-height: 1.2;
 
 	--padding-inline: 1.5rem;
-	
+
 	--color-page: white;
 	--color-ink: black;
-	--color-ink-subdued: #7E7F87;
+	--color-ink-subdued: #7e7f87;
 
 	--color-native-sender: #1285fe;
 	--color-recipient: #e6e5ec;
@@ -34,9 +34,10 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 	--border-radius: 1rem;
 
 	--color-border: #ddddde;
+	--color-header: #f7f7f7;
 	--dropdown-background: #ededed;
 	--dropdown-border: #b3b3b3;
-	
+
 	--color-drop-shadow: oklch(0 0 0 / 8%);
 	--color-drop-shadow-intense: oklch(0 0 0 / 16%);
 
@@ -57,7 +58,7 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 }
 
 html {
-  font-size: var(--font-size);
+	font-size: var(--font-size);
 }
 
 body {
@@ -90,5 +91,69 @@ chat-preview {
 }
 
 chat-editor {
-  display: none;
+	display: none;
+}
+
+.header {
+	width: 100%;
+	position: fixed;
+	top: 0;
+	left: 0;
+	display: flex;
+	justify-content: center;
+	background-color: hsl(from var(--color-header) h s l / .95);
+	border-bottom: 1px solid var(--color-border);
+	backdrop-filter: blur(28px);
+	padding-block: .5rem;
+	user-select: none;
+}
+
+.mode-switch {
+	font-size: var(--font-size);
+
+	--thumb-padding: calc(2rem / 14);
+	/*--gap: calc(12rem / 14);*/
+	--gap: 0px;
+
+	display: flex;
+	position: relative;
+	padding-inline: var(--thumb-padding);
+	gap: var(--gap);
+	height: calc(32rem / 14);
+	/*line-height: var(--line-height);*/
+	/*width: calc(48rem / 14);*/
+	/*height: calc(32rem / 14);*/
+	background-color: var(--color-recipient);
+	border-radius: calc(4rem / 14);
+	cursor: pointer;
+	transition: background-color 0.3s ease-in-out;
+
+	input {
+		position: absolute;
+		opacity: 0;
+		height: 0;
+		width: 0;
+	}
+
+	span {
+		padding: calc(10rem / 14);
+		z-index: 1;
+	}
+
+	.switch-thumb {
+		position: absolute;
+		left: var(--thumb-padding);
+		top: var(--thumb-padding);
+		height: calc(28rem / 14);
+		background-color: var(--color-page);
+		border-radius: calc(4rem / 14);
+		transition: left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+
+		filter: drop-shadow(4px 0 4px var(--color-drop-shadow));
+	}
+
+	input:checked + .switch-thumb {
+		left: calc(var(--thumb-padding) + var(--option-0-width) + var(--gap));
+		filter: drop-shadow(-4px 0 4px var(--color-drop));
+	}
 }
