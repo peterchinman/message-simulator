@@ -73,11 +73,12 @@ body {
 
 .app-container {
 	width: 100%;
-	display: grid;
-	grid-template-columns: 1fr 1fr;
+	/*display: grid;*/
+	/*grid-template-columns: 1fr 1fr;*/
 	gap: 1rem;
 	height: calc(var(--vh, 1dvh) * 100);
 }
+
 @media (max-width: 900px) {
 	.app-container {
 		grid-template-columns: 1fr;
@@ -86,4 +87,8 @@ body {
 chat-editor,
 chat-preview {
 	min-height: 0;
+}
+
+chat-editor {
+  display: none;
 }

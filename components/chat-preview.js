@@ -38,9 +38,13 @@ class ChatPreview extends HTMLElement {
 		this._onKeyDown = this._onKeyDown.bind(this);
 		this._onInput = this._onInput.bind(this);
 		this._sendNow = this._sendNow.bind(this);
-		this._scheduleShrinkWrap = this._scheduleShrinkWrap.bind(this);
+		this._scheduleShrinkWrapAll = this._scheduleShrinkWrapAll.bind(this);
 		this._onEditorFocusMessage = this._onEditorFocusMessage.bind(this);
-		this._shrinkWrapFrame = null;
+
+		this._shrinkWrapAllRafId = null;
+		this._shrinkWrapForRafId = null;
+		this._scrollRafId = null;
+		this._focusMessageRafId = null;
 	}
 
 	connectedCallback() {
@@ -75,6 +79,13 @@ class ChatPreview extends HTMLElement {
 					padding-inline: var(--padding-inline);
 					overflow-y: scroll;
 					padding-top: var(--message-spacing);
+
+					/*transition: opacity 180ms ease-in;*/
+				}
+
+				.shrink-wrap-pending {
+					/*opacity: 0;*/
+					/*transform: translateX(100%);*/
 				}
 
 				.message {
@@ -375,7 +386,7 @@ class ChatPreview extends HTMLElement {
 		`;
 
 		this.$ = {
-			container: this.shadowRoot.querySelector('.message-list'),
+			messageList: this.shadowRoot.querySelector('.message-list'),
 			bottom: this.shadowRoot.querySelector('.bottom-area'),
 			input: this.shadowRoot.querySelector('.input'),
 			send: this.shadowRoot.querySelector('.send-button'),
@@ -417,14 +428,14 @@ class ChatPreview extends HTMLElement {
 			}
 		});
 
-		// Resize Observer for padding
+		// Resize Observer for padding at bottom of messages
 		const inputObserver = new ResizeObserver((entries) => {
 			for (let entry of entries) {
 				const height = entry.target.getBoundingClientRect().height;
 				const isNearBottom = this._isNearBottom();
-				this.$.container.style.paddingBottom = `${height}px`;
+				this.$.messageList.style.paddingBottom = `${height}px`;
 				if (isNearBottom) {
-					this.$.container.scrollTop = this.$.container.scrollHeight;
+					this._scrollToBottom();
 				}
 			}
 		});
@@ -440,7 +451,7 @@ class ChatPreview extends HTMLElement {
 					document.documentElement.style.setProperty('--vh', `${vh}px`);
 					setTimeout(() => {
 						window.scrollTo(0, 0);
-						this.$.container.scrollTo(0, this.$.container.scrollHeight);
+						this._scrollToBottom();
 					});
 				} else {
 					document.documentElement.style.setProperty('--vh', '1dvh');
@@ -484,7 +495,7 @@ class ChatPreview extends HTMLElement {
 		switch (reason) {
 			case 'add':
 				this.#renderAdd(message, messages);
-				this._scrollToBottom();
+				this._scrollToBottom('smooth');
 				break;
 			case 'update':
 				this.#renderUpdate(message, messages);
@@ -584,7 +595,7 @@ class ChatPreview extends HTMLElement {
 	 * @returns {boolean}
 	 */
 	_isNearBottom() {
-		const container = this.$.container;
+		const container = this.$.messageList;
 		return (
 			container.scrollHeight - container.scrollTop - container.clientHeight < 10
 		);
@@ -595,8 +606,11 @@ class ChatPreview extends HTMLElement {
 	 * @param {'auto'|'smooth'} [behavior='auto']
 	 */
 	_scrollToBottom(behavior = 'auto') {
-		const container = this.$.container;
-		container.scrollTo({ top: container.scrollHeight, behavior });
+		const messageList = this.$.messageList;
+		if (this._scrollRafId) cancelAnimationFrame(this._scrollRafId);
+		this._scrollRafId = requestAnimationFrame(() => {
+			messageList.scrollTo({ top: messageList.scrollHeight, behavior });
+		});
 	}
 
 	/**
@@ -608,10 +622,11 @@ class ChatPreview extends HTMLElement {
 		if (!id) return;
 
 		const messageNode = this.#findFirstNodeByMessageId(id);
-		if (messageNode && this.$.container) {
-			// Use requestAnimationFrame to ensure the DOM is ready
-			requestAnimationFrame(() => {
-				const container = this.$.container;
+		if (messageNode && this.$.messageList) {
+			if (this._focusMessageRafId)
+				cancelAnimationFrame(this._focusMessageRafId);
+			this._focusMessageRafId = requestAnimationFrame(() => {
+				const container = this.$.messageList;
 				// Get bounding rects relative to viewport
 				const nodeRect = messageNode.getBoundingClientRect();
 				const containerRect = container.getBoundingClientRect();
@@ -638,6 +653,8 @@ class ChatPreview extends HTMLElement {
 				setTimeout(() => {
 					messageNode.classList.remove('flash');
 				}, ChatPreview.FLASH_DURATION_MS);
+
+				this._focusMessageRafId = null;
 			});
 		}
 	}
@@ -733,7 +750,7 @@ class ChatPreview extends HTMLElement {
 	 * @private
 	 */
 	#findFirstNodeByMessageId(id) {
-		const container = this.$.container;
+		const container = this.$.messageList;
 		if (!container) return null;
 		for (let i = 0; i < container.children.length; i++) {
 			const child = container.children[i];
@@ -750,7 +767,7 @@ class ChatPreview extends HTMLElement {
 	 * @private
 	 */
 	#removeMessageNodes(id) {
-		const container = this.$.container;
+		const container = this.$.messageList;
 		if (!container) return;
 		const toRemove = [];
 		for (let i = 0; i < container.children.length; i++) {
@@ -770,7 +787,7 @@ class ChatPreview extends HTMLElement {
 	 * @private
 	 */
 	#insertMessageNodesAtIndex(message, messages) {
-		const container = this.$.container;
+		const container = this.$.messageList;
 		if (!container || !message) return [];
 		const nodes = this.#renderMessageNodes(message);
 		if (nodes.length === 0) return [];
@@ -832,7 +849,7 @@ class ChatPreview extends HTMLElement {
 	 */
 	#renderReset(messages) {
 		this.#renderAll(messages || []);
-		this._scheduleShrinkWrap();
+		this._scheduleShrinkWrapAll();
 	}
 
 	/**
@@ -841,25 +858,33 @@ class ChatPreview extends HTMLElement {
 	 * @private
 	 */
 	#renderAll(messages) {
-		const container = this.$.container;
-		container.innerHTML = '';
+		const messageList = this.$.messageList;
+		messageList.innerHTML = '';
 		for (const m of messages) {
 			const nodes = this.#renderMessageNodes(m);
-			for (const n of nodes) container.appendChild(n);
+			for (const n of nodes) messageList.appendChild(n);
 		}
 	}
 
 	_shrinkWrapInit() {
-		const run = () => {
-			this._shrinkWrapUnwrapAll();
-			requestAnimationFrame(() => this._shrinkWrapAll());
+		this.$.messageList.classList.add('shrink-wrap-pending');
+
+		const runShrinkWrap = () => {
+			this._scheduleShrinkWrapAll();
+			requestAnimationFrame(() => {
+				this.$.messageList.classList.remove('shrink-wrap-pending');
+			});
 		};
-		if (document.readyState === 'complete') run();
-		else window.addEventListener('load', run, { once: true });
-		if (document.fonts && document.fonts.ready) document.fonts.ready.then(run);
+
+		if (document.readyState === 'complete') {
+			runShrinkWrap();
+		} else {
+			window.addEventListener('load', runShrinkWrap, { once: true });
+		}
+
 		window.addEventListener(
 			'resize',
-			this._debounce(() => this._shrinkWrapResize(), 150),
+			this._debounce(() => this._scheduleShrinkWrapAll(), 150),
 		);
 	}
 	/**
@@ -874,7 +899,9 @@ class ChatPreview extends HTMLElement {
 				el.style.boxSizing = '';
 			}
 		}
-		requestAnimationFrame(() => {
+		if (this._shrinkWrapForRafId)
+			cancelAnimationFrame(this._shrinkWrapForRafId);
+		this._shrinkWrapForRafId = requestAnimationFrame(() => {
 			for (const el of nodes) {
 				if (!el || !el.classList || !el.classList.contains('message')) continue;
 				const span = el.querySelector('span');
@@ -885,6 +912,7 @@ class ChatPreview extends HTMLElement {
 				el.style.width = `${width}px`;
 				el.style.boxSizing = 'content-box';
 			}
+			this._shrinkWrapForRafId = null;
 		});
 	}
 	/** Apply shrink-wrap to all message bubbles. */
@@ -907,18 +935,20 @@ class ChatPreview extends HTMLElement {
 		});
 	}
 	/** Schedule a shrink-wrap recalculation on the next animation frame. */
-	_scheduleShrinkWrap() {
-		if (this._shrinkWrapFrame) cancelAnimationFrame(this._shrinkWrapFrame);
-		this._shrinkWrapFrame = requestAnimationFrame(() => {
-			this._shrinkWrapFrame = null;
-			this._shrinkWrapResize();
+	_scheduleShrinkWrapAll() {
+		if (this._shrinkWrapAllRafId)
+			cancelAnimationFrame(this._shrinkWrapAllRafId);
+		this._shrinkWrapAllRafId = requestAnimationFrame(() => {
+			this._shrinkWrapUnwrapAll();
+			/** we bump this out an additional animation frame so that we get the
+			    correct bounding client rect results from unwrapping */
+			requestAnimationFrame(() => {
+				this._shrinkWrapAll();
+			});
+			this._shrinkWrapAllRafId = null;
 		});
 	}
-	/** Recalculate shrink-wrap widths for all bubbles. */
-	_shrinkWrapResize() {
-		this._shrinkWrapUnwrapAll();
-		requestAnimationFrame(() => this._shrinkWrapAll());
-	}
+
 	/**
 	 * Return a debounced version of a function.
 	 * @template {any[]} TArgs
