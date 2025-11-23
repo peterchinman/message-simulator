@@ -1,5 +1,6 @@
 import { store } from './store.js';
 import './message-card.js';
+import './icon-arrow.js';
 import { html } from '../utils/template.js';
 
 class ChatEditor extends HTMLElement {
@@ -25,15 +26,24 @@ class ChatEditor extends HTMLElement {
 					flex-direction: column;
 					height: 100%;
 				}
-				.header {
-					padding: 8px 12px;
-					border-bottom: 1px solid var(--color-border);
-					font-size: 14px;
+				.editor-header {
+					position: absolute;
+					width: 100%;
+					top: 0;
+					left: 0;
 					display: flex;
-					gap: 8px;
-					align-items: center;
+					padding-inline: var(--padding-inline);
+					justify-content: space-between;
+					background: var(--color-header);
+					border-bottom: 1px solid #ebebeb;
+					-webkit-backdrop-filter: var(--backdrop-filter);
+					backdrop-filter: var(--backdrop-filter);
+					padding-block: 0.5rem;
+					user-select: none;
+					z-index: 4;
 				}
-				.body {
+
+				.cards-list {
 					flex: 1;
 					display: flex;
 					flex-direction: column;
@@ -51,18 +61,21 @@ class ChatEditor extends HTMLElement {
 					cursor: pointer;
 				}
 			</style>
-			<div class="wrapper" part="wrapper">
-				<div class="header" part="header">
-					Editor
+			<div class="wrapper"">
+				<div class="editor-header">
 					<button id="add-end" title="Add new message at end">
 						Add message
 					</button>
-					<span style="flex:1"></span>
 					<button id="export-json" title="Export chat as JSON">Export</button>
 					<button id="import-json" title="Import chat from JSON">Import</button>
 					<button id="clear-chat" title="Clear all messages">Clear</button>
+					<icon-arrow
+						text="Preview"
+						activates-mode="preview"
+						reversed
+					></icon-arrow>
 				</div>
-				<div class="body" part="body">
+				<div class="cards-list">
 					<!-- cards go here -->
 				</div>
 				<input
@@ -280,12 +293,13 @@ class ChatEditor extends HTMLElement {
 	}
 
 	#insertCardAtIndex(card, index) {
-		const body = this.shadowRoot && this.shadowRoot.querySelector('.body');
-		if (!body) return;
-		const cards = body.querySelectorAll('.editor-card');
+		const cardsList =
+			this.shadowRoot && this.shadowRoot.querySelector('.cards-list');
+		if (!cardsList) return;
+		const cards = cardsList.querySelectorAll('.editor-card');
 		const referenceNode = cards[index] || null;
 		if (card !== referenceNode) {
-			body.insertBefore(card, referenceNode);
+			cardsList.insertBefore(card, referenceNode);
 		}
 	}
 
@@ -324,8 +338,9 @@ class ChatEditor extends HTMLElement {
 	}
 
 	#render(messages) {
-		const body = this.shadowRoot && this.shadowRoot.querySelector('.body');
-		if (!body) return;
+		const cardsList =
+			this.shadowRoot && this.shadowRoot.querySelector('.cards-list');
+		if (!cardsList) return;
 		const existing = new Map(
 			Array.from(this.shadowRoot.querySelectorAll('.editor-card'))
 				.filter((node) => node instanceof HTMLElement)
@@ -352,7 +367,7 @@ class ChatEditor extends HTMLElement {
 			const referenceNode =
 				this.shadowRoot.querySelectorAll('.editor-card')[index] || null;
 			if (card !== referenceNode) {
-				body.insertBefore(card, referenceNode);
+				cardsList.insertBefore(card, referenceNode);
 			}
 			const textValue = typeof m.message === 'string' ? m.message : '';
 			ensureAttr(card, 'sender', m.sender || 'self');

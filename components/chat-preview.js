@@ -1,5 +1,6 @@
 import { store } from './store.js';
 import './sender-switch.js';
+import './icon-arrow.js';
 import { html } from '../utils/template.js';
 
 /**
@@ -73,12 +74,32 @@ class ChatPreview extends HTMLElement {
 					line-height: var(--line-height);
 				}
 
+				.preview-header {
+					position: absolute;
+					width: 100%;
+					top: 0;
+					left: 0;
+					display: flex;
+					padding-inline: var(--padding-inline);
+					justify-content: space-between;
+					background: var(--color-header);
+					border-bottom: 1px solid #ebebeb;
+					-webkit-backdrop-filter: var(--backdrop-filter);
+					backdrop-filter: var(--backdrop-filter);
+					padding-block: 0.5rem;
+					user-select: none;
+					z-index: 4;
+				}
+
 				.message-list {
 					display: flex;
 					flex-direction: column;
 					padding-inline: var(--padding-inline);
 					overflow-y: scroll;
-					padding-top: var(--message-spacing);
+					padding-top: calc(
+						var(--message-spacing) + var(--preview-header-height, 0px)
+					);
+					padding-bottom: var(--bottom-area-height, 0px);
 
 					/*transition: opacity 180ms ease-in;*/
 				}
@@ -323,7 +344,11 @@ class ChatPreview extends HTMLElement {
 					</symbol>
 				</defs>
 			</svg>
-			<div class="window">
+			<section class="window">
+				<header class="preview-header">
+					<icon-arrow text="Edit" activates-mode="edit"></icon-arrow>
+					<div class="recipient-info"></div>
+				</header>
 				<div class="message-list"></div>
 				<div class="bottom-area">
 					<label class="options-container">
@@ -376,7 +401,7 @@ class ChatPreview extends HTMLElement {
 					</div>
 					<sender-switch id="senderSwitch" checked></sender-switch>
 				</div>
-			</div>
+			</section>
 			<input
 				id="import-file"
 				type="file"
@@ -386,6 +411,7 @@ class ChatPreview extends HTMLElement {
 		`;
 
 		this.$ = {
+			header: this.shadowRoot.querySelector('.preview-header'),
 			messageList: this.shadowRoot.querySelector('.message-list'),
 			bottom: this.shadowRoot.querySelector('.bottom-area'),
 			input: this.shadowRoot.querySelector('.input'),
@@ -433,13 +459,28 @@ class ChatPreview extends HTMLElement {
 			for (let entry of entries) {
 				const height = entry.target.getBoundingClientRect().height;
 				const isNearBottom = this._isNearBottom();
-				this.$.messageList.style.paddingBottom = `${height}px`;
+				this.$.messageList.style.setProperty(
+					'--bottom-area-height',
+					`${height}px`,
+				);
 				if (isNearBottom) {
 					this._scrollToBottom();
 				}
 			}
 		});
 		inputObserver.observe(this.$.bottom);
+
+		// Resize Observer for header height
+		const headerObserver = new ResizeObserver((entries) => {
+			for (let entry of entries) {
+				const height = entry.target.getBoundingClientRect().height;
+				this.$.messageList.style.setProperty(
+					'--preview-header-height',
+					`${height}px`,
+				);
+			}
+		});
+		headerObserver.observe(this.$.header);
 
 		// iOS viewport workarounds
 		if (isIOS && window.visualViewport) {

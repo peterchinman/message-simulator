@@ -15,17 +15,18 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 */
 
 :root {
-	--font-size: 14px;
+	--font-size: 16px;
+	--font-size-small: 11.5px;
 	--font-family: -apple-system, BlinkMacSystemFont, sans-serif;
 	--line-height: 1.2;
 
-	--padding-inline: 1.5rem;
+	--padding-inline: 0.9rem;
 
 	--color-page: white;
 	--color-ink: black;
 	--color-ink-subdued: #7e7f87;
 
-	--color-native-sender: #1285fe;
+	--color-native-sender: #007aff;
 	--color-recipient: #e6e5ec;
 
 	--message-spacing: calc(8rem / 14);
@@ -34,26 +35,31 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 	--border-radius: 1rem;
 
 	--color-border: #ddddde;
-	--color-header: #f7f7f7;
+	--color-header: hsl(0 0 95 / 0.85);
 	--dropdown-background: #ededed;
 	--dropdown-border: #b3b3b3;
+
+	--backdrop-blur: 20px;
+	--backdrop-filter: blur(var(--backdrop-blur));
 
 	--color-drop-shadow: oklch(0 0 0 / 8%);
 	--color-drop-shadow-intense: oklch(0 0 0 / 16%);
 
-	--message-padding-inline: calc(8rem / 14);
-	--message-padding-block: calc(4rem / 14);
+	--message-padding-inline: calc(10rem / 14);
+	--message-padding-block: calc(6rem / 14);
+
 	--message-tail-offset: calc(-1 * 4.5rem / 14);
 
 	--single-line-message-height: calc(1lh + 2 * var(--message-padding-block));
 }
 
-@media (max-width: 480px) {
+@media (min-width: 480px) {
 	:root {
-		--font-size: 16px;
-		--padding-inline: 0.9rem;
-		--message-padding-inline: calc(10rem / 14);
-		--message-padding-block: calc(6rem / 14);
+		--font-size: 14px;
+		--font-size-small: 9px;
+		--padding-inline: 1.5rem;
+		--message-padding-inline: calc(8rem / 14);
+		--message-padding-block: calc(4rem / 14);
 	}
 }
 
@@ -74,15 +80,16 @@ body {
 
 .app-container {
 	width: 100%;
-	/*display: grid;*/
-	/*grid-template-columns: 1fr 1fr;*/
+	display: grid;
 	gap: 1rem;
+	grid-template-columns: 1fr;
+
 	height: calc(var(--vh, 1dvh) * 100);
 }
 
-@media (max-width: 900px) {
+@media (min-width: 900px) {
 	.app-container {
-		grid-template-columns: 1fr;
+		grid-template-columns: 1fr 1fr;
 	}
 }
 chat-editor,
@@ -94,18 +101,47 @@ chat-editor {
 	display: none;
 }
 
-.header {
-	width: 100%;
-	position: fixed;
-	top: 0;
-	left: 0;
-	display: flex;
-	justify-content: center;
-	background-color: hsl(from var(--color-header) h s l / .95);
-	border-bottom: 1px solid var(--color-border);
-	backdrop-filter: blur(28px);
-	padding-block: .5rem;
-	user-select: none;
+chat-preview {
+	display: block;
+}
+
+/* Mode switching - when in edit mode, show editor and hide preview */
+.app-container[data-mode='edit'] chat-editor {
+	display: block;
+}
+
+/* we don't use display: none so that we can keep the component in the DOM, and prevent recalculation of layout when switching modes */
+.app-container[data-mode='edit'] chat-preview {
+	visibility: hidden;
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+
+/* Mode switching - when in preview mode, show preview and hide editor */
+.app-container[data-mode='preview'] chat-editor {
+	visibility: hidden;
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.app-container[data-mode='preview'] chat-preview {
+	visibility: visible;
+	position: static;
+	opacity: 1;
+	pointer-events: auto;
+}
+
+@media (min-width: 900px) {
+	/* On large screens, show both panes regardless of mode */
+	chat-editor {
+		display: block;
+	}
+
+	chat-preview {
+		display: block;
+	}
 }
 
 .mode-switch {

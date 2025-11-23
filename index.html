@@ -16,42 +16,8 @@
 		<main id="app" class="app-container">
 			<chat-editor></chat-editor>
 			<chat-preview></chat-preview>
-			<div class="header">
-				<label class="mode-switch" data-tooltip="Choose edit or preview mode">
-					<input type="checkbox" part="checkbox" />
-					<div class="switch-thumb"></div>
-					<span id="option-1" class="option">Edit</span>
-					<span id="option-2" class="option">Preview</span>
-				</label>
-			</div>
 		</main>
 		<script type="module" src="./components/chat-editor.js"></script>
 		<script type="module" src="./components/chat-preview.js"></script>
-		<script>
-			const modeSwitch = document.querySelector('.mode-switch');
-			const optionWidths = Array.from(
-				document.querySelectorAll('.mode-switch .option'),
-			).map((o) => {
-				return o.getBoundingClientRect().width;
-			});
-
-			optionWidths.forEach((value, index) => {
-				modeSwitch.style.setProperty(`--option-${index}-width`, `${value}px`);
-			});
-
-			const thumb = document.querySelector('.mode-switch .switch-thumb');
-			const checkbox = document.querySelector('.mode-switch input');
-
-			thumb.style.width = checkbox.checked
-				? `${optionWidths[1]}px`
-				: `${optionWidths[0]}px`;
-
-			checkbox.addEventListener('change', () => {
-				// Use the appropriate width based on checkbox state
-				thumb.style.width = checkbox.checked
-					? `${optionWidths[1]}px`
-					: `${optionWidths[0]}px`;
-			});
-		</script>
 	</body>
 </html>
