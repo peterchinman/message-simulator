@@ -94,12 +94,12 @@ class ChatPreview extends HTMLElement {
 				.message-list {
 					display: flex;
 					flex-direction: column;
-					padding-inline: var(--padding-inline);
 					overflow-y: scroll;
-					padding-top: calc(
-						var(--message-spacing) + var(--preview-header-height, 0px)
+					background: linear-gradient(
+						to top,
+						var(--color-native-sender),
+						var(--color-native-sender-faded)
 					);
-					padding-bottom: var(--bottom-area-height, 0px);
 
 					/*transition: opacity 180ms ease-in;*/
 				}
@@ -109,42 +109,22 @@ class ChatPreview extends HTMLElement {
 					/*transform: translateX(100%);*/
 				}
 
-				.message {
+				.message-row {
+					width: 100%;
 					position: relative;
-					display: flex;
-					align-items: center;
-					padding-inline: var(--message-padding-inline);
-					padding-block: var(--message-padding-block);
-					border-radius: var(--border-radius);
 
-					max-width: 66%;
-
-					&.self {
-						background-color: var(--color-native-sender);
-						color: white;
-						fill: var(--color-native-sender);
-						align-self: end;
-						justify-content: flex-end;
-
-						.message-tail {
-							right: var(--message-tail-offset);
-						}
-					}
-
-					&.other {
-						background-color: var(--color-recipient);
-						color: black;
-						fill: var(--color-recipient);
-						align-self: start;
-
-						svg {
-							transform: scale(-1, 1);
-							left: var(--message-tail-offset);
-						}
-					}
-
-					&:not(:first-child) {
+					&:not(:first-child) .bubble {
 						margin-top: var(--message-spacing);
+					}
+
+					&:first-child .container {
+						padding-top: calc(
+							var(--message-spacing) + var(--preview-header-height, 0px)
+						);
+					}
+
+					&:last-child .container {
+						padding-bottom: var(--bottom-area-height, 0px);
 					}
 
 					&.self:has(+ .self),
@@ -156,7 +136,76 @@ class ChatPreview extends HTMLElement {
 
 					&.self + .self,
 					&.other + .other {
-						margin-top: var(--consecutive-message-spacing);
+						.bubble {
+							margin-top: var(--consecutive-message-spacing);
+						}
+					}
+				}
+
+				.container {
+					display: flex;
+					flex-direction: column;
+					padding-inline: var(--padding-inline);
+
+					&.message {
+						position: absolute;
+						top: 0;
+						left: 0;
+						width: 100%;
+					}
+
+					&.mask {
+						background-color: var(--color-page);
+						mix-blend-mode: screen;
+					}
+				}
+
+				.bubble {
+					position: relative;
+					display: flex;
+					align-items: center;
+					padding-inline: var(--message-padding-inline);
+					padding-block: var(--message-padding-block);
+					border-radius: var(--border-radius);
+
+					max-width: 66%;
+
+					.self & {
+						align-self: end;
+						justify-content: flex-end;
+
+						.message-tail {
+							right: var(--message-tail-offset);
+						}
+					}
+
+					.other & {
+						align-self: start;
+
+						svg {
+							transform: scale(-1, 1);
+							left: var(--message-tail-offset);
+						}
+					}
+
+					.self &.message {
+						color: white;
+						fill: transparent;
+					}
+
+					.self &.mask {
+						background-color: black;
+					}
+
+					.other &.message {
+						background-color: var(--color-recipient);
+						color: black;
+						fill: var(--color-recipient);
+					}
+
+					.other &.mask {
+						background-color: var(--color-recipient);
+						fill: var(--color-recipient);
 					}
 
 					svg {
@@ -169,7 +218,21 @@ class ChatPreview extends HTMLElement {
 					&.flash {
 						animation: flash ${ChatPreview.FLASH_DURATION_MS / 1000}s
 							ease-in-out;
+						z-index: 1000;
 					}
+				}
+
+				.bubble.image-bubble {
+					padding: 0;
+					background-color: transparent !important;
+					fill: transparent !important;
+					overflow: hidden;
+				}
+
+				.bubble.image-bubble img {
+					display: block;
+					max-width: 240px;
+					height: auto;
 				}
 
 				@keyframes flash {
@@ -688,12 +751,16 @@ class ChatPreview extends HTMLElement {
 					behavior: 'smooth',
 				});
 
-				// Add flash effect to the message
-				messageNode.classList.add('flash');
-				// Remove the flash class after animation completes
-				setTimeout(() => {
-					messageNode.classList.remove('flash');
-				}, ChatPreview.FLASH_DURATION_MS);
+				// Add flash effect to the bubble (both the content and the mask)
+				const bubbles = messageNode.querySelectorAll('.bubble');
+				for (const bubble of bubbles) {
+					bubble.classList.add('flash');
+					// Remove the flash class after animation completes
+					setTimeout(
+						() => bubble.classList.remove('flash'),
+						ChatPreview.FLASH_DURATION_MS,
+					);
+				}
 
 				this._focusMessageRafId = null;
 			});
@@ -701,35 +768,58 @@ class ChatPreview extends HTMLElement {
 	}
 
 	/**
-	 * Create a text bubble element.
+	 * Create a text bubble element. We create the DOM twice, once for the mask that reveals the gradient below, and once for the text display.
 	 * @param {string} message
 	 * @param {'self'|'other'} sender
 	 * @param {string|number} [id]
 	 * @returns {HTMLDivElement}
 	 * @private
 	 */
-	#createBubble(message, sender, id) {
-		const messageDiv = document.createElement('div');
-		messageDiv.className = `message ${sender}`;
-		if (id) messageDiv.dataset.id = String(id);
+	#createBubbleRow(message, sender, id) {
+		const row = document.createElement('div');
+		row.className = `message-row ${sender}`;
+		if (id) row.dataset.id = String(id);
 
-		const span = document.createElement('span');
-		span.textContent = message;
+		const maskContainer = document.createElement('div');
+		maskContainer.className = 'mask container';
+		const maskBubble = document.createElement('div');
+		maskBubble.className = 'mask bubble';
+		maskContainer.appendChild(maskBubble);
+
+		const maskText = document.createElement('span');
+		maskText.textContent = message;
 
 		const svgNS = 'http://www.w3.org/2000/svg';
 		const xlinkNS = 'http://www.w3.org/1999/xlink';
 
-		const svg = document.createElementNS(svgNS, 'svg');
-		svg.classList.add('message-tail');
-		svg.style.fill = 'inherit';
+		const maskSvg = document.createElementNS(svgNS, 'svg');
+		maskSvg.classList.add('message-tail');
+		maskSvg.style.fill = 'inherit';
 
 		const use = document.createElementNS(svgNS, 'use');
 		use.setAttributeNS(xlinkNS, 'href', '#message-tail');
 
-		svg.appendChild(use);
-		messageDiv.appendChild(span);
-		messageDiv.appendChild(svg);
-		return messageDiv;
+		maskSvg.appendChild(use);
+		const messageSvg = maskSvg.cloneNode(true);
+
+		maskBubble.appendChild(maskText);
+		maskBubble.appendChild(maskSvg);
+		maskContainer.appendChild(maskBubble);
+
+		const messageContainer = document.createElement('div');
+		messageContainer.className = 'message container';
+		const bubbleDiv = document.createElement('div');
+		bubbleDiv.className = `message bubble`;
+
+		const messageText = document.createElement('span');
+		messageText.textContent = message;
+
+		bubbleDiv.appendChild(messageText);
+		bubbleDiv.appendChild(messageSvg);
+		messageContainer.appendChild(bubbleDiv);
+		row.appendChild(maskContainer);
+		row.appendChild(messageContainer);
+		return row;
 	}
 
 	/**
@@ -741,14 +831,15 @@ class ChatPreview extends HTMLElement {
 	 * @private
 	 */
 	#createImage(img, sender, id) {
-		const imgDiv = document.createElement('div');
-		imgDiv.className = `message ${sender}`;
-		if (id) imgDiv.dataset.id = String(id);
+		const row = document.createElement('div');
+		row.className = `message-row ${sender}`;
+		if (id) row.dataset.id = String(id);
+
+		const bubble = document.createElement('div');
+		bubble.className = 'message bubble image-bubble';
 		const image = document.createElement('img');
 		image.src = img.src;
 		image.alt = img.alt || '';
-		image.style.maxWidth = '240px';
-		image.style.height = 'auto';
 		const svgNS = 'http://www.w3.org/2000/svg';
 		const xlinkNS = 'http://www.w3.org/1999/xlink';
 		const svg = document.createElementNS(svgNS, 'svg');
@@ -757,9 +848,10 @@ class ChatPreview extends HTMLElement {
 		const use = document.createElementNS(svgNS, 'use');
 		use.setAttributeNS(xlinkNS, 'href', '#message-tail');
 		svg.appendChild(use);
-		imgDiv.appendChild(image);
-		imgDiv.appendChild(svg);
-		return imgDiv;
+		bubble.appendChild(image);
+		bubble.appendChild(svg);
+		row.appendChild(bubble);
+		return row;
 	}
 
 	/**
@@ -779,7 +871,7 @@ class ChatPreview extends HTMLElement {
 			}
 		}
 		if (m && typeof m.message === 'string' && m.message.length > 0) {
-			nodes.push(this.#createBubble(m.message, sender, id));
+			nodes.push(this.#createBubbleRow(m.message, sender, id));
 		}
 		return nodes;
 	}
@@ -793,13 +885,8 @@ class ChatPreview extends HTMLElement {
 	#findFirstNodeByMessageId(id) {
 		const container = this.$.messageList;
 		if (!container) return null;
-		for (let i = 0; i < container.children.length; i++) {
-			const child = container.children[i];
-			if (child && child.dataset && child.dataset.id === id) {
-				return child;
-			}
-		}
-		return null;
+
+		return container.querySelector(`[data-id="${id}"]`);
 	}
 
 	/**
@@ -810,14 +897,9 @@ class ChatPreview extends HTMLElement {
 	#removeMessageNodes(id) {
 		const container = this.$.messageList;
 		if (!container) return;
-		const toRemove = [];
-		for (let i = 0; i < container.children.length; i++) {
-			const child = container.children[i];
-			if (child && child.dataset && child.dataset.id === id) {
-				toRemove.push(child);
-			}
-		}
-		for (const el of toRemove) el.remove();
+		container
+			.querySelectorAll(`[data-id="${id}"]`)
+			.forEach((el) => el.remove());
 	}
 
 	/**
@@ -935,44 +1017,64 @@ class ChatPreview extends HTMLElement {
 	_shrinkWrapFor(nodes) {
 		if (!nodes || nodes.length === 0) return;
 		for (const el of nodes) {
-			if (el && el.classList && el.classList.contains('message')) {
-				el.style.width = '';
-				el.style.boxSizing = '';
+			if (el && el.classList && el.classList.contains('message-row')) {
+				const bubbles = el.querySelectorAll('.bubble');
+				for (const bubble of bubbles) {
+					this.#unwrapShrinkWrapForBubble(bubble);
+				}
 			}
 		}
 		if (this._shrinkWrapForRafId)
 			cancelAnimationFrame(this._shrinkWrapForRafId);
 		this._shrinkWrapForRafId = requestAnimationFrame(() => {
 			for (const el of nodes) {
-				if (!el || !el.classList || !el.classList.contains('message')) continue;
-				const span = el.querySelector('span');
-				if (!span) continue;
-				const range = document.createRange();
-				range.selectNodeContents(span);
-				const { width } = range.getBoundingClientRect();
-				el.style.width = `${width}px`;
-				el.style.boxSizing = 'content-box';
+				let bubbles = [];
+				// Handle message-row: find bubbles inside
+				if (el && el.classList && el.classList.contains('message-row')) {
+					bubbles = Array.from(el.querySelectorAll('.bubble'));
+				}
+
+				for (const bubble of bubbles) {
+					this.#applyShrinkWrapToBubble(bubble);
+				}
 			}
 			this._shrinkWrapForRafId = null;
 		});
 	}
 	/** Apply shrink-wrap to all message bubbles. */
 	_shrinkWrapAll() {
-		this.shadowRoot.querySelectorAll('.message').forEach((el) => {
-			const span = el.querySelector('span');
-			if (!span) return;
-			const range = document.createRange();
-			range.selectNodeContents(span);
-			const { width } = range.getBoundingClientRect();
-			el.style.width = `${width}px`;
-			el.style.boxSizing = 'content-box';
+		this.shadowRoot.querySelectorAll('.bubble').forEach((el) => {
+			this.#applyShrinkWrapToBubble(el);
 		});
+	}
+	/**
+	 * Measure and apply shrink-wrap styles to a single bubble element.
+	 * Bubbles without a text span (e.g. image bubbles) are no-ops.
+	 * @param {Element} bubble
+	 */
+	#applyShrinkWrapToBubble(bubble) {
+		if (!bubble || typeof bubble.querySelector !== 'function') return;
+		const span = bubble.querySelector('span');
+		if (!span) return;
+		const range = document.createRange();
+		range.selectNodeContents(span);
+		const { width } = range.getBoundingClientRect();
+		bubble.style.width = `${width}px`;
+		bubble.style.boxSizing = 'content-box';
+	}
+	/**
+	 * Remove shrink-wrap styles from a single bubble element.
+	 * @param {Element} bubble
+	 */
+	#unwrapShrinkWrapForBubble(bubble) {
+		if (!bubble || !bubble.style) return;
+		bubble.style.width = '';
+		bubble.style.boxSizing = '';
 	}
 	/** Remove shrink-wrap styles from all message bubbles. */
 	_shrinkWrapUnwrapAll() {
-		this.shadowRoot.querySelectorAll('.message').forEach((el) => {
-			el.style.width = '';
-			el.style.boxSizing = '';
+		this.shadowRoot.querySelectorAll('.bubble').forEach((el) => {
+			this.#unwrapShrinkWrapForBubble(el);
 		});
 	}
 	/** Schedule a shrink-wrap recalculation on the next animation frame. */

@@ -26,6 +26,7 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 	--color-ink: black;
 	--color-ink-subdued: #7e7f87;
 
+	--color-native-sender-faded: #53C2FB;
 	--color-native-sender: #007aff;
 	--color-recipient: #e6e5ec;
 
