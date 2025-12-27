@@ -129,7 +129,7 @@ class MessageStore extends EventTarget {
 		// "Clear" resets to the app's initial default chat.
 		this.#messages = this.#withIdsAndTimestamps(DEFAULT_MESSAGES);
 		this.#scheduleSave();
-		this.#emitChange('reset-defaults');
+		this.#emitChange('clear');
 	}
 
 	exportJson(pretty = true) {

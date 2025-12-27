@@ -607,6 +607,10 @@ class ChatPreview extends HTMLElement {
 			case 'delete':
 				this.#renderDelete(message);
 				break;
+			case 'clear':
+				this.#renderReset(messages);
+				this._scrollToBottom();
+				break;
 			default:
 				this.#renderReset(messages);
 				this._scrollToBottom();
