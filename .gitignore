@@ -17,6 +17,7 @@ Thumbs.db
 *.swp
 *.swo
 *~
+.playwright-mcp/*
 
 # Environment variables
 .env

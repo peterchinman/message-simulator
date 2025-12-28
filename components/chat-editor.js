@@ -27,11 +27,16 @@ class ChatEditor extends HTMLElement {
 					box-sizing: border-box;
 					display: block;
 					height: 100%;
+
+					@media (min-width: 900px) {
+						border-right: 1px solid var(--color-edge);
+					}
 				}
 				.wrapper {
 					display: flex;
 					flex-direction: column;
 					height: 100%;
+					position: relative;
 				}
 				.editor-header {
 					position: absolute;
@@ -39,6 +44,7 @@ class ChatEditor extends HTMLElement {
 					top: 0;
 					left: 0;
 					display: flex;
+					align-items: center;
 					padding-inline: var(--padding-inline);
 					justify-content: space-between;
 					background: var(--color-header);
@@ -46,8 +52,16 @@ class ChatEditor extends HTMLElement {
 					-webkit-backdrop-filter: var(--backdrop-filter);
 					backdrop-filter: var(--backdrop-filter);
 					padding-block: 0.5rem;
+					flex-wrap: nowrap;
+					overflow-x: auto;
 					user-select: none;
 					z-index: 4;
+				}
+
+				@media (min-width: 900px) {
+					.editor-header icon-arrow[activates-mode='preview'] {
+						display: none;
+					}
 				}
 
 				.cards-list {
@@ -69,11 +83,9 @@ class ChatEditor extends HTMLElement {
 					cursor: pointer;
 				}
 			</style>
-			<div class="wrapper"">
+			<div class="wrapper">
 				<div class="editor-header">
-					<button id="add-end" title="Add new message at end">
-						+
-					</button>
+					<button id="add-end" title="Add new message at end">+</button>
 					<button id="export-json" title="Export chat as JSON">Export</button>
 					<button id="import-json" title="Import chat from JSON">Import</button>
 					<button id="clear-chat" title="Clear all messages">Clear</button>

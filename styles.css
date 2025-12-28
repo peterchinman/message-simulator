@@ -81,8 +81,8 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 	--control-border: #3a3a40;
 	--mask-blend-mode: multiply;
 
-	--color-drop-shadow: oklch(0 0 0 / 0%);
-	--color-drop-shadow-intense: oklch(0 0 0 / 0%);
+	--color-drop-shadow: transparent;
+	--color-drop-shadow-intense: transparent;
 }
 
 @media (min-width: 480px) {
@@ -116,7 +116,6 @@ body {
 .app-container {
 	width: 100%;
 	display: grid;
-	gap: 1rem;
 	grid-template-columns: 1fr;
 
 	height: calc(var(--vh, 1dvh) * 100);
@@ -127,26 +126,26 @@ body {
 		grid-template-columns: 1fr 1fr;
 	}
 }
-chat-editor,
-chat-preview {
+.pane--editor,
+.pane--preview {
 	min-height: 0;
 }
 
-chat-editor {
+.pane--editor {
 	display: none;
 }
 
-chat-preview {
+.pane--preview {
 	display: block;
 }
 
 /* Mode switching - when in edit mode, show editor and hide preview */
-.app-container[data-mode='edit'] chat-editor {
+.app-container[data-mode='edit'] .pane--editor {
 	display: block;
 }
 
 /* we don't use display: none so that we can keep the component in the DOM, and prevent recalculation of layout when switching modes */
-.app-container[data-mode='edit'] chat-preview {
+.app-container[data-mode='edit'] .pane--preview {
 	visibility: hidden;
 	position: absolute;
 	opacity: 0;
@@ -154,14 +153,14 @@ chat-preview {
 }
 
 /* Mode switching - when in preview mode, show preview and hide editor */
-.app-container[data-mode='preview'] chat-editor {
+.app-container[data-mode='preview'] .pane--editor {
 	visibility: hidden;
 	position: absolute;
 	opacity: 0;
 	pointer-events: none;
 }
 
-.app-container[data-mode='preview'] chat-preview {
+.app-container[data-mode='preview'] .pane--preview {
 	visibility: visible;
 	position: static;
 	opacity: 1;
@@ -170,12 +169,52 @@ chat-preview {
 
 @media (min-width: 900px) {
 	/* On large screens, show both panes regardless of mode */
-	chat-editor {
+	.pane--editor {
 		display: block;
 	}
 
-	chat-preview {
+	.pane--preview {
 		display: block;
+	}
+
+	/* Override narrow-mode hiding rules when transitioning to wide layouts */
+	.app-container[data-mode='edit'] .pane--preview,
+	.app-container[data-mode='preview'] .pane--editor {
+		visibility: visible;
+		position: static;
+		opacity: 1;
+		pointer-events: auto;
+	}
+
+	.app-container {
+		height: calc(var(--vh, 1dvh) * 100);
+	}
+
+	.pane {
+		min-height: 0;
+		height: 100%;
+	}
+
+	.pane--editor chat-editor,
+	.pane--preview chat-preview {
+		display: block;
+		min-height: 0;
+		height: 100%;
+	}
+
+	/* Inset / container look for the preview pane */
+	.pane--preview {
+		padding: 4dvw;
+		background: var(--color-edge);
+	}
+
+	.pane--preview chat-preview {
+		border-radius: calc(18rem / 14);
+		overflow: hidden;
+		border: 1px solid var(--color-edge);
+		box-shadow:
+			0 16px 48px var(--color-drop-shadow-intense),
+			0 4px 16px var(--color-drop-shadow);
 	}
 }
 

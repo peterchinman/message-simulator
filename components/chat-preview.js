@@ -91,9 +91,19 @@ class ChatPreview extends HTMLElement {
 					z-index: 4;
 				}
 
+				/* On wide layouts we show editor + preview simultaneously, so hide mode switch */
+				@media (min-width: 900px) {
+					.preview-header icon-arrow[activates-mode='edit'] {
+						display: none;
+					}
+				}
+
 				.message-list {
 					display: flex;
 					flex-direction: column;
+					/* Fill the available window height so the spacer can grow */
+					flex: 1 1 auto;
+					min-height: 0;
 					overflow-y: scroll;
 					background: linear-gradient(
 						to top,
@@ -102,6 +112,14 @@ class ChatPreview extends HTMLElement {
 					);
 
 					/*transition: opacity 180ms ease-in;*/
+				}
+
+				/* Fills any unused space at the bottom of the scroll area with page color */
+				.message-list-spacer {
+					flex: 1 0 0px;
+					width: 100%;
+					background: var(--color-page);
+					pointer-events: none;
 				}
 
 				.shrink-wrap-pending {
@@ -409,7 +427,9 @@ class ChatPreview extends HTMLElement {
 					<icon-arrow text="Edit" activates-mode="edit"></icon-arrow>
 					<div class="recipient-info"></div>
 				</header>
-				<div class="message-list"></div>
+				<div class="message-list">
+					<div class="message-list-spacer" aria-hidden="true"></div>
+				</div>
 				<div class="bottom-area">
 					<label class="options-container">
 						<svg
@@ -473,6 +493,7 @@ class ChatPreview extends HTMLElement {
 		this.$ = {
 			header: this.shadowRoot.querySelector('.preview-header'),
 			messageList: this.shadowRoot.querySelector('.message-list'),
+			messageListSpacer: this.shadowRoot.querySelector('.message-list-spacer'),
 			bottom: this.shadowRoot.querySelector('.bottom-area'),
 			input: this.shadowRoot.querySelector('.input'),
 			send: this.shadowRoot.querySelector('.send-button'),
@@ -915,6 +936,7 @@ class ChatPreview extends HTMLElement {
 		if (!container || !message) return [];
 		const nodes = this.#renderMessageNodes(message);
 		if (nodes.length === 0) return [];
+		const spacer = this.#ensureMessageListSpacer();
 		const idx = Array.isArray(messages)
 			? messages.findIndex((m) => m && m.id === message.id)
 			: -1;
@@ -927,9 +949,42 @@ class ChatPreview extends HTMLElement {
 		}
 		for (const n of nodes) {
 			if (referenceNode) container.insertBefore(n, referenceNode);
+			else if (spacer) container.insertBefore(n, spacer);
 			else container.appendChild(n);
 		}
 		return nodes;
+	}
+
+	/**
+	 * Ensure the bottom spacer exists and is the last child of the message list.
+	 * @returns {HTMLElement|null}
+	 * @private
+	 */
+	#ensureMessageListSpacer() {
+		const list = this.$.messageList;
+		if (!list) return null;
+
+		let spacer = this.$.messageListSpacer;
+		if (!(spacer instanceof HTMLElement)) {
+			spacer = this.shadowRoot.querySelector('.message-list-spacer');
+		}
+		if (!(spacer instanceof HTMLElement)) {
+			spacer = document.createElement('div');
+			spacer.className = 'message-list-spacer';
+			spacer.setAttribute('aria-hidden', 'true');
+		}
+
+		// Keep ref up to date
+		this.$.messageListSpacer = spacer;
+
+		// Ensure it's the last child
+		if (spacer.parentElement !== list) {
+			list.appendChild(spacer);
+		} else if (list.lastElementChild !== spacer) {
+			list.appendChild(spacer);
+		}
+
+		return spacer;
 	}
 
 	/**
@@ -984,9 +1039,13 @@ class ChatPreview extends HTMLElement {
 	#renderAll(messages) {
 		const messageList = this.$.messageList;
 		messageList.innerHTML = '';
+		const spacer = this.#ensureMessageListSpacer();
 		for (const m of messages) {
 			const nodes = this.#renderMessageNodes(m);
-			for (const n of nodes) messageList.appendChild(n);
+			for (const n of nodes) {
+				if (spacer) messageList.insertBefore(n, spacer);
+				else messageList.appendChild(n);
+			}
 		}
 	}
 
