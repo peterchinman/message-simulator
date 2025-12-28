@@ -102,7 +102,7 @@ class MessageStore extends EventTarget {
 		if (Object.prototype.hasOwnProperty.call(patch, 'location')) {
 			next.location = String(patch.location ?? '').trim();
 		}
-	
+
 		if (
 			next.name === this.#recipient.name &&
 			next.location === this.#recipient.location
