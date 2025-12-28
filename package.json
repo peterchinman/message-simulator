@@ -1,0 +1,20 @@
+{
+  "name": "message-simulator",
+  "version": "1.0.0",
+  "description": "The iMessage experience, now in web form.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "format": "prettier --write \"**/*.{js,html,css}\" --plugin=prettier-plugin-embed",
+    "format:check": "prettier --check \"**/*.{js,html,css}\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "prettier": "^3.6.2",
+    "prettier-plugin-embed": "^0.5.0"
+  }
+}
+
+

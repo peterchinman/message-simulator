@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+set -eu
+
+if ! command -v npm >/dev/null 2>&1; then
+  echo "pre-commit: npm not found; skipping format check" >&2
+  exit 0
+fi
+
+if [ ! -f package.json ]; then
+  echo "pre-commit: package.json not found; skipping format check" >&2
+  exit 0
+fi
+
+echo "pre-commit: checking formatting (npm run format:check)"
+npm run -s format:check
+
+
