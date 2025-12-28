@@ -32,7 +32,7 @@ class MessageCard extends HTMLElement {
 					display: block;
 				}
 				.card {
-					border: 1px solid var(--color-border);
+					border: 1px solid var(--color-edge);
 					border-radius: var(--border-radius);
 					padding: calc(12rem / 14);
 					font-size: 14px;

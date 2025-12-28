@@ -50,7 +50,7 @@ class ChatPreview extends HTMLElement {
 
 	connectedCallback() {
 		this.shadowRoot.innerHTML = html`
-			<style>
+      <style>
 				*,
 				*::before,
 				*::after {
@@ -83,7 +83,7 @@ class ChatPreview extends HTMLElement {
 					padding-inline: var(--padding-inline);
 					justify-content: space-between;
 					background: var(--color-header);
-					border-bottom: 1px solid #ebebeb;
+					border-bottom: 1px solid var(--color-edge);
 					-webkit-backdrop-filter: var(--backdrop-filter);
 					backdrop-filter: var(--backdrop-filter);
 					padding-block: 0.5rem;
@@ -156,7 +156,7 @@ class ChatPreview extends HTMLElement {
 
 					&.mask {
 						background-color: var(--color-page);
-						mix-blend-mode: screen;
+						mix-blend-mode: var(--mask-blend-mode);
 					}
 				}
 
@@ -194,12 +194,13 @@ class ChatPreview extends HTMLElement {
 					}
 
 					.self &.mask {
-						background-color: black;
+						background-color: var(--color-ink);
+						fill: var(--color-ink);
 					}
 
 					.other &.message {
 						background-color: var(--color-recipient);
-						color: black;
+						color: var(--color-ink);
 						fill: var(--color-recipient);
 					}
 
@@ -273,13 +274,13 @@ class ChatPreview extends HTMLElement {
 					justify-content: space-between;
 					align-items: flex-end;
 					gap: 0.5rem;
-					background: hsl(0 0 100 / 0.7);
-					backdrop-filter: blur(20px);
+					background: var(--color-overlay);
+					backdrop-filter: var(--backdrop-filter);
 				}
 
 				.input-container {
 					justify-content: stretch;
-					border: 1px solid var(--color-border);
+					border: 1px solid var(--color-edge);
 					padding-left: var(--message-padding-inline);
 					padding-right: var(--tight-padding);
 					border-radius: 1.3rem;
@@ -343,11 +344,7 @@ class ChatPreview extends HTMLElement {
 					display: flex;
 					align-items: center;
 					justify-content: center;
-					background-color: color-mix(
-						in srgb,
-						var(--color-recipient) 80%,
-						transparent
-					);
+					background-color: var(--color-menu);
 					border: 1px solid transparent;
 					border-radius: 100%;
 
@@ -371,8 +368,8 @@ class ChatPreview extends HTMLElement {
 						padding-inline: 0.3rem;
 						padding-block: 0.3rem;
 
-						background-color: var(--dropdown-background);
-						border: 1px solid var(--dropdown-border);
+						background-color: var(--color-menu);
+						border: 1px solid var(--color-edge);
 						border-radius: 0.4rem;
 
 						filter: drop-shadow(0 0 0.7rem rgba(0, 0, 0, 0.3));
@@ -387,7 +384,7 @@ class ChatPreview extends HTMLElement {
 							color: white;
 							background-color: color-mix(
 								in oklab,
-								var(--dropdown-background) 20%,
+								var(--color-menu) 20%,
 								var(--color-native-sender) 80%
 							);
 						}
@@ -471,7 +468,7 @@ class ChatPreview extends HTMLElement {
 				accept=".json"
 				style="display:none"
 			/>
-		`;
+    `;
 
 		this.$ = {
 			header: this.shadowRoot.querySelector('.preview-header'),

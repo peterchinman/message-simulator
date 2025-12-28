@@ -35,9 +35,11 @@ class IconArrow extends HTMLElement {
 		const isReversed = this.hasAttribute('reversed');
 
 		this.shadowRoot.innerHTML = html`
-			<style>
+      <style>
 				:host {
-					display: inline-block;
+					display: flex;
+					align-items: center;
+					justify-content: center;
 				}
 
 				button {
@@ -46,16 +48,13 @@ class IconArrow extends HTMLElement {
 					display: flex;
 					align-items: center;
 					justify-self: start;
-					margin-left: calc(-4rem / 14);
 					cursor: pointer;
 				}
 
 				.icon {
 					display: inline-block;
-					width: calc(24rem / 14);
-					height: calc(24rem / 14);
-					stroke-width: 12px;
-					color: currentColor;
+					height: calc(16rem / 14);
+					stroke-width: 1.5px;
 				}
 
 				.icon.reversed svg {
@@ -78,37 +77,37 @@ class IconArrow extends HTMLElement {
 					padding-inline: calc(5rem / 14);
 					padding-block: calc(2rem / 14);
 					border-radius: 10rem;
-					margin-top: calc(1rem / 14);
+					margin-inline: calc(5rem / 14);
 				}
 
 				.text:not(.reversed) {
-					margin-left: calc(-3rem / 14);
 				}
 
 				.text.reversed {
-					margin-right: calc(-3rem / 14);
 					order: -1;
 				}
 			</style>
 			<button>
-				<span class="icon ${isReversed ? 'reversed' : ''}">
+				<div class="icon ${isReversed ? 'reversed' : ''}">
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 256 256"
-						aria-hidden="true"
+						fill="currentColor"
+						viewBox="0 0 17 32"
+						height="100%"
+						width="100%"
 					>
 						<path
-							d="M165.66,202.34a8,8,0,0,1-11.32,11.32l-80-80a8,8,0,0,1,0-11.32l80-80a8,8,0,0,1,11.32,11.32L91.31,128Z"
+							d="M16.5849 29.5157c.1316.1351.236.2955.3072.4721a1.49 1.49 0 0 1 0 1.1138 1.46 1.46 0 0 1-.3072.4722 1.42 1.42 0 0 1-.4598.3154 1.385 1.385 0 0 1-1.0848 0 1.42 1.42 0 0 1-.4598-.3154L.4155 17.029a1.46 1.46 0 0 1-.3075-.472A1.49 1.49 0 0 1 0 16c0-.1911.0367-.3804.108-.557a1.46 1.46 0 0 1 .3074-.472L14.5805.4262C14.8463.1533 15.2068 0 15.5827 0s.7364.1533 1.0022.4262S17 1.0693 17 1.4552c0 .386-.1493.7562-.4151 1.0291L3.4202 16z"
 						/>
 					</svg>
-				</span>
+				</div>
 				${text
 					? html`<span class="text ${isReversed ? 'reversed' : ''}"
 								>${text}</span
 							>`
 					: ''}
 			</button>
-		`;
+    `;
 	}
 
 	_onClick() {

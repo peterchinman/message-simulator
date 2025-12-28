@@ -10,16 +10,23 @@ class ChatEditor extends HTMLElement {
 		this._onStoreChange = this._onStoreChange.bind(this);
 		this._onDelegated = this._onDelegated.bind(this);
 		this._onFocusIn = this._onFocusIn.bind(this);
+		this._onToggleTheme = this._onToggleTheme.bind(this);
 		this._lastFocusedCard = null;
+		this._themeObserver = null;
 	}
 
 	connectedCallback() {
 		this.shadowRoot.innerHTML = html`
 			<style>
+				*,
+				*::before,
+				*::after {
+					box-sizing: border-box;
+				}
 				:host {
+					box-sizing: border-box;
 					display: block;
 					height: 100%;
-					box-sizing: border-box;
 				}
 				.wrapper {
 					display: flex;
@@ -35,7 +42,7 @@ class ChatEditor extends HTMLElement {
 					padding-inline: var(--padding-inline);
 					justify-content: space-between;
 					background: var(--color-header);
-					border-bottom: 1px solid #ebebeb;
+					border-bottom: 1px solid var(--color-edge);
 					-webkit-backdrop-filter: var(--backdrop-filter);
 					backdrop-filter: var(--backdrop-filter);
 					padding-block: 0.5rem;
@@ -55,8 +62,9 @@ class ChatEditor extends HTMLElement {
 				button {
 					font: 12px system-ui;
 					padding: 6px 10px;
-					border: 1px solid #ccc;
-					background: #f8f8f8;
+					border: 1px solid var(--color-edge);
+					background: var(--color-menu);
+					color: var(--color-ink);
 					border-radius: 6px;
 					cursor: pointer;
 				}
@@ -64,11 +72,18 @@ class ChatEditor extends HTMLElement {
 			<div class="wrapper"">
 				<div class="editor-header">
 					<button id="add-end" title="Add new message at end">
-						Add message
+						+
 					</button>
 					<button id="export-json" title="Export chat as JSON">Export</button>
 					<button id="import-json" title="Import chat from JSON">Import</button>
 					<button id="clear-chat" title="Clear all messages">Clear</button>
+					<button
+						id="toggle-theme"
+						title="Toggle theme"
+						aria-label="Toggle theme"
+					>
+						Theme
+					</button>
 					<icon-arrow
 						text="Preview"
 						activates-mode="preview"
@@ -124,6 +139,20 @@ class ChatEditor extends HTMLElement {
 					store.clear();
 				}
 			});
+
+		this.shadowRoot
+			.getElementById('toggle-theme')
+			.addEventListener('click', this._onToggleTheme);
+
+		this.#syncThemeToggleLabel();
+		this._themeObserver = new MutationObserver(() => {
+			this.#syncThemeToggleLabel();
+		});
+		this._themeObserver.observe(document.documentElement, {
+			attributes: true,
+			attributeFilter: ['data-theme'],
+		});
+
 		this.shadowRoot
 			.getElementById('import-file')
 			.addEventListener('change', (e) => {
@@ -156,6 +185,39 @@ class ChatEditor extends HTMLElement {
 		);
 		this.shadowRoot.removeEventListener('focusin', this._onFocusIn, true);
 		store.removeEventListener('messages:changed', this._onStoreChange);
+		if (this._themeObserver) {
+			this._themeObserver.disconnect();
+			this._themeObserver = null;
+		}
+	}
+
+	_onToggleTheme() {
+		const STORAGE_KEY = 'message-simulator:theme';
+		const root = document.documentElement;
+		const current =
+			root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+		const next = current === 'dark' ? 'light' : 'dark';
+		root.setAttribute('data-theme', next);
+		try {
+			localStorage.setItem(STORAGE_KEY, next);
+		} catch (_e) {
+			// swallow
+		}
+		this.#syncThemeToggleLabel();
+	}
+
+	#syncThemeToggleLabel() {
+		const btn =
+			this.shadowRoot && this.shadowRoot.getElementById('toggle-theme');
+		if (!btn) return;
+		const current =
+			document.documentElement.getAttribute('data-theme') === 'dark'
+				? 'dark'
+				: 'light';
+		const next = current === 'dark' ? 'light' : 'dark';
+		btn.textContent = next === 'dark' ? 'Dark' : 'Light';
+		btn.title = `Switch to ${next} theme`;
+		btn.setAttribute('aria-label', `Switch to ${next} theme`);
 	}
 
 	_onStoreChange(e) {

@@ -14,7 +14,10 @@ A: I designed the message sipper to have whole number pixel sizes & offsets at
 pixel value (x) at that scale, while also being dynamic with rem size.
 */
 
-:root {
+:root,
+:root[data-theme='light'] {
+	color-scheme: light;
+
 	--font-size: 16px;
 	--font-size-small: 11.5px;
 	--font-family: -apple-system, BlinkMacSystemFont, sans-serif;
@@ -26,7 +29,7 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 	--color-ink: black;
 	--color-ink-subdued: #7e7f87;
 
-	--color-native-sender-faded: #53C2FB;
+	--color-native-sender-faded: #53c2fb;
 	--color-native-sender: #007aff;
 	--color-recipient: #e6e5ec;
 
@@ -35,10 +38,12 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 
 	--border-radius: 1rem;
 
-	--color-border: #ddddde;
+	--color-edge: #ddddde;
 	--color-header: hsl(0 0 95 / 0.85);
+	--color-overlay: hsl(0 0 100 / 0.7);
 	--dropdown-background: #ededed;
 	--dropdown-border: #b3b3b3;
+	--mask-blend-mode: screen;
 
 	--backdrop-blur: 20px;
 	--backdrop-filter: blur(var(--backdrop-blur));
@@ -52,6 +57,32 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 	--message-tail-offset: calc(-1 * 4.5rem / 14);
 
 	--single-line-message-height: calc(1lh + 2 * var(--message-padding-block));
+}
+
+:root[data-theme='dark'] {
+	color-scheme: dark;
+
+	--color-page: #000000;
+	--color-ink: #ffffff;
+	--color-ink-subdued: #78787d;
+
+	/* iOS-ish blues + bubble gray */
+	--color-native-sender-faded: #3598ff;
+	--color-native-sender: #0d84ff;
+	--color-recipient: #26252a;
+
+	--color-edge: #212225;
+	--color-icon: #4a4b4d;
+	--color-menu: #1f1f21;
+	--color-header: hsl(0 0 10 / 0.78);
+	--color-overlay: hsl(0 0 0 / 0.7);
+
+	--control-background: #1c1c1f;
+	--control-border: #3a3a40;
+	--mask-blend-mode: multiply;
+
+	--color-drop-shadow: oklch(0 0 0 / 0%);
+	--color-drop-shadow-intense: oklch(0 0 0 / 0%);
 }
 
 @media (min-width: 480px) {
@@ -70,9 +101,12 @@ html {
 
 body {
 	height: calc(var(--vh, 1dvh) * 100);
-	max-width: 100%;
+	max-width: 100dvw;
+	overflow-x: hidden;
 
 	font-family: var(--font-family);
+	background: var(--color-page);
+	color: var(--color-ink);
 
 	display: flex;
 	flex-direction: column;
@@ -191,6 +225,6 @@ chat-preview {
 
 	input:checked + .switch-thumb {
 		left: calc(var(--thumb-padding) + var(--option-0-width) + var(--gap));
-		filter: drop-shadow(-4px 0 4px var(--color-drop));
+		filter: drop-shadow(-4px 0 4px var(--color-drop-shadow-intense));
 	}
 }
