@@ -137,6 +137,7 @@ class ChatPreview extends HTMLElement {
 				.recipient-name-container {
 					display: flex;
 					align-items: center;
+					justify-content: center;
 					gap: calc(4rem / 14);
 
 					.recipient-name {
@@ -147,6 +148,7 @@ class ChatPreview extends HTMLElement {
 					}
 
 					svg {
+						width: calc(var(--font-size-small) * 0.7);
 						height: calc(var(--font-size-small) * 0.7);
 						transform: scaleX(-1);
 						color: var(--color-ink-subdued);

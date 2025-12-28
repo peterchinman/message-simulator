@@ -121,7 +121,6 @@ class ChatEditor extends HTMLElement {
 			</style>
 			<div class="wrapper">
 				<div class="editor-header">
-					<button id="add-end" title="Add new message at end">+</button>
 					<button id="export-json" title="Export chat as JSON">Export</button>
 					<button id="import-json" title="Import chat from JSON">Import</button>
 					<button id="clear-chat" title="Clear all messages">Clear</button>
@@ -221,9 +220,6 @@ class ChatEditor extends HTMLElement {
 		this.shadowRoot.addEventListener('editor:add-below', this._onDelegated);
 		this.shadowRoot.addEventListener('editor:insert-image', this._onDelegated);
 		this.shadowRoot.addEventListener('focusin', this._onFocusIn, true);
-		this.shadowRoot.getElementById('add-end').addEventListener('click', () => {
-			store.addMessage();
-		});
 		this.shadowRoot
 			.getElementById('export-json')
 			.addEventListener('click', () => {

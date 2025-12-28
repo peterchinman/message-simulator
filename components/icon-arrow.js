@@ -55,6 +55,7 @@ class IconArrow extends HTMLElement {
 				.icon {
 					display: inline-block;
 					height: calc(16rem / 14);
+					width: calc(8.5rem / 14);
 					stroke-width: 1.5px;
 				}
 
@@ -79,9 +80,6 @@ class IconArrow extends HTMLElement {
 					padding-block: calc(2rem / 14);
 					border-radius: 10rem;
 					margin-inline: calc(5rem / 14);
-				}
-
-				.text:not(.reversed) {
 				}
 
 				.text.reversed {
