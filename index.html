@@ -1,51 +1,84 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no", interactive-widget=resizes-content>
-    <meta name="description" content="Basic HTML/CSS/JS site skeleton" />
-    <title>Message Simulator</title>
-    <link rel="stylesheet" href="./styles.css" />
-  </head>
-  <body>
-    <svg style="display: none;">
-      <defs>
-        <symbol id="message-tail" viewBox="0 0 21 28">
-          <path d="M21.006,27.636C21.02,27.651 11.155,30.269 1.302,21.384C0.051,20.256 0.065,15.626 0.006,14.004C-0.253,6.917 8.514,-0.156 11.953,0.003L11.953,13.18C11.953,17.992 12.717,23.841 21.006,27.636Z" />
-        </symbol>
-      </defs>
-    </svg>
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+			,
+			interactive-widget="resizes-content"
+		/>
+		<meta name="description" content="Basic HTML/CSS/JS site skeleton" />
+		<title>Message Simulator</title>
 
-    <div class="window">
-      <div class="message-container">
-      </div>
-      <div class="bottom-area">
-        <label class="options-container">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="14" height="14">
-            <path d="M 50 20 L 50 80 M 20 50 L 80 50" stroke="currentColor" stroke-width="10" stroke-linecap="round" fill="none" />
-          </svg>
-          <input type="checkbox" id="options-button">
-          <ul class="options-menu">
-            <li class="options-item" id="clearChat">Clear chat</li>
-            <li class="options-item" id="exportChat">Export chat</li>
-            <li class="options-item" id="importChat">Import chat</li>
-          </ul>
-        </label>
-        <div class="input-container input-sizer stacked">
-          <textarea class="input" rows="1" placeholder="iMessage"></textarea>
-          <button class="send-button" type="button">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><line x1="128" y1="216" x2="128" y2="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="40"/><polyline points="56 112 128 40 200 112" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="40"/></svg>
-          </button>
-        </div>
-        <label class="sender-switch-container">
-          <input type="checkbox" id="senderSwitch" checked>
-          <div class="switch-thumb"></div>
-        </label>
-      </div>
-    </div>
+		<!-- Fonts -->
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&family=Public+Sans:ital,wght@0,100..900;1,100..900&display=swap"
+			rel="stylesheet"
+		/>
 
-    <script src="./script.js" defer></script>
-  </body>
+		<!-- Theme -->
+		<script>
+			(() => {
+				const STORAGE_KEY = 'message-simulator:theme';
+				const root = document.documentElement;
+
+				const getSavedTheme = () => {
+					try {
+						return localStorage.getItem(STORAGE_KEY);
+					} catch (_e) {
+						return null;
+					}
+				};
+
+				const applyTheme = (theme) => {
+					if (theme === 'dark' || theme === 'light') {
+						root.setAttribute('data-theme', theme);
+					} else {
+						root.removeAttribute('data-theme');
+					}
+				};
+
+				const mql =
+					window.matchMedia &&
+					window.matchMedia('(prefers-color-scheme: dark)');
+
+				const syncToSystemIfNoOverride = () => {
+					const saved = getSavedTheme();
+					if (saved === 'dark' || saved === 'light') return;
+					applyTheme(mql && mql.matches ? 'dark' : 'light');
+				};
+
+				// Initial theme: saved override, else system
+				const saved = getSavedTheme();
+				if (saved === 'dark' || saved === 'light') applyTheme(saved);
+				else syncToSystemIfNoOverride();
+
+				// Live-update when OS theme changes (only when no saved override)
+				if (mql) {
+					const onChange = () => syncToSystemIfNoOverride();
+					if (typeof mql.addEventListener === 'function') {
+						mql.addEventListener('change', onChange);
+					} else if (typeof mql.addListener === 'function') {
+						mql.addListener(onChange);
+					}
+				}
+			})();
+		</script>
+		<link rel="stylesheet" href="./styles.css" />
+	</head>
+	<body>
+		<main id="app" class="app-container">
+			<section class="pane pane--editor">
+				<chat-editor></chat-editor>
+			</section>
+			<section class="pane pane--preview">
+				<chat-preview></chat-preview>
+			</section>
+		</main>
+		<script type="module" src="./components/chat-editor.js"></script>
+		<script type="module" src="./components/chat-preview.js"></script>
+	</body>
 </html>
-
-

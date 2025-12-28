@@ -1,302 +1,274 @@
-@import "./reset.css";
+@import './reset.css';
 
 *,
 *::before,
 *::after {
-  box-sizing: border-box;
+	box-sizing: border-box;
 }
 
 /*
 Q: WTF are these sizing calcs with 14 in the denominator??
 
-A: I designed the message sipper to have whole number pixel sizes & offsets at 14px rem. `calc(_rem / 14)` is how you achieve a value that references a specific pixel value at that scale, while also being dynamic with rem size.
+A: I designed the message sipper to have whole number pixel sizes & offsets at
+14px rem. `calc(xrem / 14)` is how you achieve a value that references a specific
+pixel value (x) at that scale, while also being dynamic with rem size.
 */
 
 :root {
-  --font-size: 14px;
-  font-size: var(--font-size);
+	color-scheme: light;
 
-  --padding-inline: 1.5rem;
+	--font-size: 16px;
+	--font-size-small: 11.5px;
+	--font-base: -apple-system, BlinkMacSystemFont, sans-serif;
+	--font-rounded: 'Comfortaa', apple-system, BlinkMacSystemFont, sans-serif;
+	--line-height: 1.2;
 
-  --native-sender-color: #1285fe;
-  --recipient-color: #e6e5ec;
+	--padding-inline: 0.9rem;
 
-  --message-spacing: calc(8rem / 14);
-  --consecutive-message-spacing: calc(3rem / 14);
+	--message-spacing: calc(8rem / 14);
+	--consecutive-message-spacing: calc(3rem / 14);
 
-  --border-radius: 1rem;
+	--border-radius: 1rem;
 
-  --input-border-color: #ddddde;
-  --dropdown-background: #ededed;
-  --dropdown-border: #b3b3b3;
+	--backdrop-blur: 20px;
+	--backdrop-filter: blur(var(--backdrop-blur));
 
-  --message-padding-inline: calc(8rem / 14);
-  --message-padding-block: calc(4rem / 14);
-  --message-tail-offset: calc(-1 * 4.5rem / 14);
+	--message-padding-inline: calc(10rem / 14);
+	--message-padding-block: calc(6rem / 14);
 
-  --single-line-message-height: calc(1lh + 2 * var(--message-padding-block));
+	--message-tail-offset: calc(-1 * 4.5rem / 14);
+
+	--single-line-message-height: calc(1lh + 2 * var(--message-padding-block));
+
+	--color-page: white;
+	--color-ink: black;
+	--color-ink-subdued: #7e7f87;
+
+	--color-bubble-self-faded: #53c2fb;
+	--color-bubble-self: #007aff;
+	--color-bubble-other: #e6e5ec;
+
+	--color-recipient-avatar-bottom: #898e9a;
+	--color-recipient-avatar-top: #a3a9b8;
+
+	--color-edge: #ddddde;
+	--color-icon: #b4b8c0;
+	--color-menu: #e8e9eb;
+	--color-header: hsl(0 0 95 / 0.85);
+	--color-overlay: hsl(0 0 100 / 0.7);
+
+	--mask-blend-mode: screen;
+
+	--color-drop-shadow: oklch(0 0 0 / 8%);
+	--color-drop-shadow-intense: oklch(0 0 0 / 16%);
 }
 
-@media (max-width: 480px) {
-  :root {
-    --font-size: 16px;
-    --padding-inline: .9rem;
-    --message-padding-inline: calc(10rem / 14);
-    --message-padding-block: calc(6rem / 14);
+:root[data-theme='dark'] {
+	color-scheme: dark;
 
-    
-  }
+	--color-page: #000000;
+	--color-ink: #ffffff;
+	--color-ink-subdued: #78787d;
+
+	/* iOS-ish blues + bubble gray */
+	--color-bubble-self-faded: #3598ff;
+	--color-bubble-self: #0d84ff;
+	--color-bubble-other: #26252a;
+
+	--color-recipient-avatar-bottom: #80858f;
+	--color-recipient-avatar-top: #a4a9b7;
+
+	--color-edge: #212225;
+	--color-icon: #4a4b4d;
+	--color-menu: #1f1f21;
+	--color-header: hsl(0 0 10 / 0.78);
+	--color-overlay: hsl(0 0 0 / 0.7);
+
+	--mask-blend-mode: multiply;
+
+	--color-drop-shadow: transparent;
+	--color-drop-shadow-intense: transparent;
+}
+
+@media (min-width: 480px) {
+	:root {
+		--font-size: 14px;
+		--font-size-small: 9px;
+		--padding-inline: 1.5rem;
+		--message-padding-inline: calc(8rem / 14);
+		--message-padding-block: calc(4rem / 14);
+	}
+}
+
+html {
+	font-size: var(--font-size);
 }
 
 body {
-  height: calc(var(--vh, 1dvh) * 100);
+	height: calc(var(--vh, 1dvh) * 100);
+	max-width: 100dvw;
+	overflow-x: hidden;
 
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+	font-family: var(--font-base);
+	background: var(--color-page);
+	color: var(--color-ink);
 
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
 }
 
-.window {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  min-height: 100%;
-  width: 100%;
-  max-width: 80ch;
-  min-width: 375px;
+.app-container {
+	width: 100%;
+	display: grid;
+	grid-template-columns: 1fr;
 
-  line-height: 1.2;
+	height: calc(var(--vh, 1dvh) * 100);
 }
 
-.message-container {
-  display: flex;
-  flex-direction: column;
-  padding-inline: var(--padding-inline);
-  overflow-y: scroll;
-  padding-top: var(--message-spacing);
+@media (min-width: 900px) {
+	.app-container {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+.pane--editor,
+.pane--preview {
+	min-height: 0;
 }
 
-.message {
-  position: relative;
-  display: flex;
-  align-items: center;
-  padding-inline: var(--message-padding-inline);
-  padding-block: var(--message-padding-block);
-  border-radius: var(--border-radius);
-
-  max-width: 66%;
-
-  &.self {
-    background-color: var(--native-sender-color);
-    color: white;
-    fill: var(--native-sender-color);
-    align-self: end;
-    justify-content: flex-end;
-
-    .message-tail {
-      right: var(--message-tail-offset);
-    }
-  }
-
-  &.other {
-    background-color: var(--recipient-color);
-    color: black;
-    fill: var(--recipient-color);
-    align-self: start;
-
-    svg {
-      transform: scale(-1, 1);
-      left: var(--message-tail-offset);
-    }
-  }
-
-  &:not(:first-child) {
-    margin-top: var(--message-spacing);
-  }
-
-  &.self:has(+ .self),
-  &.other:has(+ .other) {
-    svg {
-      display: none;
-    }
-  }
-
-  &.self + .self,
-  &.other + .other {
-    margin-top: var(--consecutive-message-spacing);
-  }
-
-  svg {
-    position: absolute;
-    bottom: 0;
-    width: calc(10.5rem / 14);
-    height: calc(14rem / 14);
-  }
+.pane--editor {
+	display: none;
 }
 
-.bottom-area {
-  --tight-padding: calc(4rem / 14);
-  position: absolute;
-  bottom: 0;
-  display: flex;
-  width: 100%;
-  padding-inline: var(--padding-inline);
-  padding-block: 1rem;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 0.5rem;
-  background: hsl(0 0 100 / 0.7);
-  backdrop-filter: blur(20px);
+.pane--preview {
+	display: block;
 }
 
-.input-container {
-  justify-content: stretch;
-  border: 1px solid var(--input-border-color);
-  padding-left: var(--message-padding-inline);
-  padding-right: var(--tight-padding);
-  border-radius: 1.3rem;
-  flex-grow: 1;
-
-  display: flex;
-  align-items: center;
-
-  background: hsl(0 0 100 / 0.4);
-
-  .input {
-    all: unset;
-    max-width: 100%;
-    min-height: 1lh;
-    width: 100%;
-    overflow: hidden;
-    box-sizing: border-box;
-    overflow-wrap: break-word;
-    margin-block: var(--message-padding-block);
-  }
-
-  .send-button {
-    all: unset;
-    align-self: flex-end;
-    cursor: pointer;
-    color: white;
-    background-color: var(--native-sender-color);
-    min-height: calc(1lh + 2 * var(--message-padding-block) - 2 * var(--tight-padding));
-    min-width: calc(1lh + 2 * var(--message-padding-block) - 2 * var(--tight-padding));
-    border-radius: 50%;
-    margin-block: var(--tight-padding);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    svg {
-      height: calc(14rem / 14);
-      width: calc(14rem / 14);
-    }
-    /* padding: 0.3rem; */
-  }
-
-  .input:placeholder-shown + .send-button {
-    display: none;
-  }
-
-  /* Hide send button on non-touch devices */
-  body:not(.touch-screen) & .send-button {
-    display: none;
-  }
+/* Mode switching - when in edit mode, show editor and hide preview */
+.app-container[data-mode='edit'] .pane--editor {
+	display: block;
 }
 
-.sender-switch-container {
-  position: relative;
-  flex-shrink: 0;
-  width: calc(2lh + var(--message-padding-block) * 2);
-  height: calc(1lh + var(--message-padding-block) * 2);
-  background-color: var(--recipient-color);
-  border-radius: var(--border-radius);
-  cursor: pointer;
-  transition: background-color 0.3s ease-in-out;
-
-  &:has(input:checked) {
-    background-color: var(--native-sender-color);
-  }
-
-  input {
-    opacity: 0;
-    height: 0;
-    width: 0;
-  }
-
-  .switch-thumb {
-    position: absolute;
-    left: var(--message-padding-block);
-    top: var(--message-padding-block);
-    width: 1lh;
-    height: 1lh;
-    background-color: white;
-    border-radius: 50%;
-    transition: left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  }
-
-  input:checked + .switch-thumb {
-    left: calc(var(--message-padding-block) + 1lh);
-  }
+/* we don't use display: none so that we can keep the component in the DOM, and prevent recalculation of layout when switching modes */
+.app-container[data-mode='edit'] .pane--preview {
+	visibility: hidden;
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
 }
 
-.options-container {
-  position: relative;
-  min-width: var(--single-line-message-height);
-  min-height: var(--single-line-message-height);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: color-mix(in srgb, var(--recipient-color) 80%, transparent);
-  border: 1px solid transparent;
-  border-radius: 100%;
+/* Mode switching - when in preview mode, show preview and hide editor */
+.app-container[data-mode='preview'] .pane--editor {
+	visibility: hidden;
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
 
-  color: #7e7f86;
+.app-container[data-mode='preview'] .pane--preview {
+	visibility: visible;
+	position: static;
+	opacity: 1;
+	pointer-events: auto;
+}
 
-  input {
-    position: absolute;
-    opacity: 0;
-    height: 0;
-    width: 0;
-  }
+@media (min-width: 900px) {
+	/* On large screens, show both panes regardless of mode */
+	.pane--editor {
+		display: block;
+	}
 
-  .options-menu {
-    display: none;
-    position: absolute;
-    bottom: var(--single-line-message-height);
-    left: 0;
-    min-width: max-content;
-    color: black;
+	.pane--preview {
+		display: block;
+	}
 
-    padding-inline: 0.3rem;
-    padding-block: 0.3rem;
+	/* Override narrow-mode hiding rules when transitioning to wide layouts */
+	.app-container[data-mode='edit'] .pane--preview,
+	.app-container[data-mode='preview'] .pane--editor {
+		visibility: visible;
+		position: static;
+		opacity: 1;
+		pointer-events: auto;
+	}
 
-    background-color: var(--dropdown-background);
-    border: 1px solid var(--dropdown-border);
-    border-radius: 0.4rem;
+	.app-container {
+		height: calc(var(--vh, 1dvh) * 100);
+	}
 
-    filter: drop-shadow(0 0 0.7rem rgba(0, 0, 0, 0.3));
+	.pane {
+		min-height: 0;
+		height: 100%;
+	}
 
-    .options-item {
-      padding-inline: 0.6rem;
-      padding-block: 0.3rem;
-      border-radius: 0.3rem;
-    }
+	.pane--editor chat-editor,
+	.pane--preview chat-preview {
+		display: block;
+		min-height: 0;
+		height: 100%;
+	}
 
-    .options-item:hover {
-      color: white;
-      background-color: color-mix(
-        in oklab,
-        var(--dropdown-background) 20%,
-        var(--native-sender-color) 80%
-      );
-    }
-  }
+	/* Inset / container look for the preview pane */
+	.pane--preview {
+		padding: 4dvw;
+		background: var(--color-edge);
+	}
 
-  input:checked + .options-menu {
-    display: block;
-  }
+	.pane--preview chat-preview {
+		border-radius: calc(18rem / 14);
+		overflow: hidden;
+		border: 1px solid var(--color-edge);
+		box-shadow:
+			0 16px 48px var(--color-drop-shadow-intense),
+			0 4px 16px var(--color-drop-shadow);
+	}
+}
+
+.mode-switch {
+	font-size: var(--font-size);
+
+	--thumb-padding: calc(2rem / 14);
+	/*--gap: calc(12rem / 14);*/
+	--gap: 0px;
+
+	display: flex;
+	position: relative;
+	padding-inline: var(--thumb-padding);
+	gap: var(--gap);
+	height: calc(32rem / 14);
+	/*line-height: var(--line-height);*/
+	/*width: calc(48rem / 14);*/
+	/*height: calc(32rem / 14);*/
+	background-color: var(--color-bubble-other);
+	border-radius: calc(4rem / 14);
+	cursor: pointer;
+	transition: background-color 0.3s ease-in-out;
+
+	input {
+		position: absolute;
+		opacity: 0;
+		height: 0;
+		width: 0;
+	}
+
+	span {
+		padding: calc(10rem / 14);
+		z-index: 1;
+	}
+
+	.switch-thumb {
+		position: absolute;
+		left: var(--thumb-padding);
+		top: var(--thumb-padding);
+		height: calc(28rem / 14);
+		background-color: var(--color-page);
+		border-radius: calc(4rem / 14);
+		transition: left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+
+		filter: drop-shadow(4px 0 4px var(--color-drop-shadow));
+	}
+
+	input:checked + .switch-thumb {
+		left: calc(var(--thumb-padding) + var(--option-0-width) + var(--gap));
+		filter: drop-shadow(-4px 0 4px var(--color-drop-shadow-intense));
+	}
 }
