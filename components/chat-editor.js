@@ -13,6 +13,7 @@ class ChatEditor extends HTMLElement {
 		this._onToggleTheme = this._onToggleTheme.bind(this);
 		this._lastFocusedCard = null;
 		this._themeObserver = null;
+		this._headerObserver = null;
 	}
 
 	connectedCallback() {
@@ -72,6 +73,41 @@ class ChatEditor extends HTMLElement {
 					min-height: 0;
 					overflow: auto;
 					padding: 12px;
+					padding-top: calc(12px + var(--editor-header-height, 0px));
+				}
+				.info-editor {
+					border: 1px solid var(--color-edge);
+					border-radius: var(--border-radius);
+					padding: calc(12rem / 14);
+					background: var(--color-page);
+					display: flex;
+					flex-direction: column;
+					gap: calc(10rem / 14);
+				}
+				.info-editor .title {
+					font: 12px system-ui;
+					color: var(--color-ink-subdued);
+					letter-spacing: 0.02em;
+					text-transform: uppercase;
+				}
+				.info-editor label {
+					display: flex;
+					flex-direction: column;
+					gap: calc(6rem / 14);
+					font: 12px system-ui;
+					color: var(--color-ink-subdued);
+				}
+				.info-editor input {
+					all: unset;
+					font: 14px system-ui;
+					color: var(--color-ink);
+					padding: 8px 10px;
+					border: 1px solid var(--color-edge);
+					border-radius: 8px;
+					background: var(--color-header);
+				}
+				.info-editor input::placeholder {
+					color: var(--color-ink-subdued);
 				}
 				button {
 					font: 12px system-ui;
@@ -103,6 +139,27 @@ class ChatEditor extends HTMLElement {
 					></icon-arrow>
 				</div>
 				<div class="cards-list">
+					<div class="info-editor">
+						<div class="title">Info</div>
+						<label>
+							Name
+							<input
+								id="recipient-name"
+								type="text"
+								autocomplete="off"
+								placeholder="Recipient"
+							/>
+						</label>
+						<label>
+							Location
+							<input
+								id="recipient-location"
+								type="text"
+								autocomplete="off"
+								placeholder="New York, NY"
+							/>
+						</label>
+					</div>
 					<!-- cards go here -->
 				</div>
 				<input
@@ -119,6 +176,46 @@ class ChatEditor extends HTMLElement {
 				/>
 			</div>
 		`;
+
+		const headerEl = this.shadowRoot.querySelector('.editor-header');
+		const cardsListEl = this.shadowRoot.querySelector('.cards-list');
+		const recipientNameInput = this.shadowRoot.querySelector('#recipient-name');
+		const recipientLocationInput = this.shadowRoot.querySelector(
+			'#recipient-location',
+		);
+
+		this.$ = {
+			headerEl,
+			cardsListEl,
+			recipientNameInput,
+			recipientLocationInput,
+		};
+
+		if (headerEl && cardsListEl && typeof ResizeObserver === 'function') {
+			this._headerObserver = new ResizeObserver((entries) => {
+				for (let entry of entries) {
+					const height = entry.target.getBoundingClientRect().height;
+					cardsListEl.style.setProperty(
+						'--editor-header-height',
+						`${height}px`,
+					);
+				}
+			});
+			this._headerObserver.observe(headerEl);
+		}
+
+		const onRecipientInput = () => {
+			store.updateRecipient({
+				name: this.$?.recipientNameInput?.value ?? '',
+				location: this.$?.recipientLocationInput?.value ?? '',
+			});
+		};
+		this._onRecipientInput = onRecipientInput;
+		if (recipientNameInput)
+			recipientNameInput.addEventListener('input', onRecipientInput);
+		if (recipientLocationInput)
+			recipientLocationInput.addEventListener('input', onRecipientInput);
+
 		this.shadowRoot.addEventListener('editor:update', this._onDelegated);
 		this.shadowRoot.addEventListener('editor:delete', this._onDelegated);
 		this.shadowRoot.addEventListener('editor:add-below', this._onDelegated);
@@ -184,6 +281,7 @@ class ChatEditor extends HTMLElement {
 			});
 		store.addEventListener('messages:changed', this._onStoreChange);
 		store.load();
+		this.#syncRecipientInputs(store.getRecipient());
 		this.#render(store.getMessages());
 	}
 
@@ -197,6 +295,22 @@ class ChatEditor extends HTMLElement {
 		);
 		this.shadowRoot.removeEventListener('focusin', this._onFocusIn, true);
 		store.removeEventListener('messages:changed', this._onStoreChange);
+		if (this.$?.recipientNameInput && this._onRecipientInput) {
+			this.$.recipientNameInput.removeEventListener(
+				'input',
+				this._onRecipientInput,
+			);
+		}
+		if (this.$?.recipientLocationInput && this._onRecipientInput) {
+			this.$.recipientLocationInput.removeEventListener(
+				'input',
+				this._onRecipientInput,
+			);
+		}
+		if (this._headerObserver) {
+			this._headerObserver.disconnect();
+			this._headerObserver = null;
+		}
 		if (this._themeObserver) {
 			this._themeObserver.disconnect();
 			this._themeObserver = null;
@@ -233,7 +347,8 @@ class ChatEditor extends HTMLElement {
 	}
 
 	_onStoreChange(e) {
-		const { reason, message, messages } = e.detail || {};
+		const { reason, message, messages, recipient } = e.detail || {};
+		if (recipient) this.#syncRecipientInputs(recipient);
 		switch (reason) {
 			case 'add':
 				this.#onAdd(message, messages);
@@ -244,10 +359,30 @@ class ChatEditor extends HTMLElement {
 			case 'delete':
 				this.#onDelete(message);
 				break;
+			case 'recipient':
+				// No-op: we already synced inputs above; avoid rerendering cards while typing.
+				break;
 			default:
 				this.#render(messages);
 				break;
 		}
+	}
+
+	#syncRecipientInputs(recipient) {
+		const nameInput = this.$?.recipientNameInput;
+		const locationInput = this.$?.recipientLocationInput;
+		if (!nameInput || !locationInput) return;
+		const active = this.shadowRoot && this.shadowRoot.activeElement;
+		const name =
+			recipient && typeof recipient.name === 'string' ? recipient.name : '';
+		const location =
+			recipient && typeof recipient.location === 'string'
+				? recipient.location
+				: '';
+		if (active !== nameInput && nameInput.value !== name)
+			nameInput.value = name;
+		if (active !== locationInput && locationInput.value !== location)
+			locationInput.value = location;
 	}
 
 	_onFocusIn(e) {

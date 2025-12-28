@@ -14,42 +14,24 @@ A: I designed the message sipper to have whole number pixel sizes & offsets at
 pixel value (x) at that scale, while also being dynamic with rem size.
 */
 
-:root,
-:root[data-theme='light'] {
+:root {
 	color-scheme: light;
 
 	--font-size: 16px;
 	--font-size-small: 11.5px;
-	--font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+	--font-base: -apple-system, BlinkMacSystemFont, sans-serif;
+	--font-rounded: 'Comfortaa', apple-system, BlinkMacSystemFont, sans-serif;
 	--line-height: 1.2;
 
 	--padding-inline: 0.9rem;
-
-	--color-page: white;
-	--color-ink: black;
-	--color-ink-subdued: #7e7f87;
-
-	--color-native-sender-faded: #53c2fb;
-	--color-native-sender: #007aff;
-	--color-recipient: #e6e5ec;
 
 	--message-spacing: calc(8rem / 14);
 	--consecutive-message-spacing: calc(3rem / 14);
 
 	--border-radius: 1rem;
 
-	--color-edge: #ddddde;
-	--color-header: hsl(0 0 95 / 0.85);
-	--color-overlay: hsl(0 0 100 / 0.7);
-	--dropdown-background: #ededed;
-	--dropdown-border: #b3b3b3;
-	--mask-blend-mode: screen;
-
 	--backdrop-blur: 20px;
 	--backdrop-filter: blur(var(--backdrop-blur));
-
-	--color-drop-shadow: oklch(0 0 0 / 8%);
-	--color-drop-shadow-intense: oklch(0 0 0 / 16%);
 
 	--message-padding-inline: calc(10rem / 14);
 	--message-padding-block: calc(6rem / 14);
@@ -57,6 +39,28 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 	--message-tail-offset: calc(-1 * 4.5rem / 14);
 
 	--single-line-message-height: calc(1lh + 2 * var(--message-padding-block));
+
+	--color-page: white;
+	--color-ink: black;
+	--color-ink-subdued: #7e7f87;
+
+	--color-bubble-self-faded: #53c2fb;
+	--color-bubble-self: #007aff;
+	--color-bubble-other: #e6e5ec;
+
+	--color-recipient-avatar-bottom: #898e9a;
+	--color-recipient-avatar-top: #a3a9b8;
+
+	--color-edge: #ddddde;
+	--color-icon: #b4b8c0;
+	--color-menu: #e8e9eb;
+	--color-header: hsl(0 0 95 / 0.85);
+	--color-overlay: hsl(0 0 100 / 0.7);
+
+	--mask-blend-mode: screen;
+
+	--color-drop-shadow: oklch(0 0 0 / 8%);
+	--color-drop-shadow-intense: oklch(0 0 0 / 16%);
 }
 
 :root[data-theme='dark'] {
@@ -67,9 +71,12 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 	--color-ink-subdued: #78787d;
 
 	/* iOS-ish blues + bubble gray */
-	--color-native-sender-faded: #3598ff;
-	--color-native-sender: #0d84ff;
-	--color-recipient: #26252a;
+	--color-bubble-self-faded: #3598ff;
+	--color-bubble-self: #0d84ff;
+	--color-bubble-other: #26252a;
+
+	--color-recipient-avatar-bottom: #80858f;
+	--color-recipient-avatar-top: #a4a9b7;
 
 	--color-edge: #212225;
 	--color-icon: #4a4b4d;
@@ -77,8 +84,6 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 	--color-header: hsl(0 0 10 / 0.78);
 	--color-overlay: hsl(0 0 0 / 0.7);
 
-	--control-background: #1c1c1f;
-	--control-border: #3a3a40;
 	--mask-blend-mode: multiply;
 
 	--color-drop-shadow: transparent;
@@ -104,7 +109,7 @@ body {
 	max-width: 100dvw;
 	overflow-x: hidden;
 
-	font-family: var(--font-family);
+	font-family: var(--font-base);
 	background: var(--color-page);
 	color: var(--color-ink);
 
@@ -233,7 +238,7 @@ body {
 	/*line-height: var(--line-height);*/
 	/*width: calc(48rem / 14);*/
 	/*height: calc(32rem / 14);*/
-	background-color: var(--color-recipient);
+	background-color: var(--color-bubble-other);
 	border-radius: calc(4rem / 14);
 	cursor: pointer;
 	transition: background-color 0.3s ease-in-out;

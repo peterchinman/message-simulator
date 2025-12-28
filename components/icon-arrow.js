@@ -1,4 +1,5 @@
 import { html } from '../utils/template.js';
+import { arrowSvg } from './icons/arrow-svg.js';
 
 class IconArrow extends HTMLElement {
 	static get observedAttributes() {
@@ -44,7 +45,7 @@ class IconArrow extends HTMLElement {
 
 				button {
 					all: unset;
-					color: var(--color-native-sender);
+					color: var(--color-bubble-self);
 					display: flex;
 					align-items: center;
 					justify-self: start;
@@ -70,7 +71,7 @@ class IconArrow extends HTMLElement {
 				}
 
 				.text {
-					background-color: var(--color-native-sender);
+					background-color: var(--color-bubble-self);
 					font-size: var(--font-size-small);
 					font-weight: 300;
 					color: white;
@@ -88,19 +89,7 @@ class IconArrow extends HTMLElement {
 				}
 			</style>
 			<button>
-				<div class="icon ${isReversed ? 'reversed' : ''}">
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						fill="currentColor"
-						viewBox="0 0 17 32"
-						height="100%"
-						width="100%"
-					>
-						<path
-							d="M16.5849 29.5157c.1316.1351.236.2955.3072.4721a1.49 1.49 0 0 1 0 1.1138 1.46 1.46 0 0 1-.3072.4722 1.42 1.42 0 0 1-.4598.3154 1.385 1.385 0 0 1-1.0848 0 1.42 1.42 0 0 1-.4598-.3154L.4155 17.029a1.46 1.46 0 0 1-.3075-.472A1.49 1.49 0 0 1 0 16c0-.1911.0367-.3804.108-.557a1.46 1.46 0 0 1 .3074-.472L14.5805.4262C14.8463.1533 15.2068 0 15.5827 0s.7364.1533 1.0022.4262S17 1.0693 17 1.4552c0 .386-.1493.7562-.4151 1.0291L3.4202 16z"
-						/>
-					</svg>
-				</div>
+				<div class="icon ${isReversed ? 'reversed' : ''}">${arrowSvg()}</div>
 				${text
 					? html`<span class="text ${isReversed ? 'reversed' : ''}"
 								>${text}</span

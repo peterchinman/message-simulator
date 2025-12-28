@@ -1,6 +1,11 @@
 // MessageStore singleton: shared message state, migration, persistence
 const CHAT_STORAGE_KEY = 'message-simulator:messages';
-const CURRENT_SCHEMA_VERSION = 1;
+const CURRENT_SCHEMA_VERSION = 2;
+
+const DEFAULT_RECIPIENT = {
+	name: 'Peter Chinman',
+	location: 'New York, NY',
+};
 
 const DEFAULT_MESSAGES = [
 	{ message: 'Hi', sender: 'other' },
@@ -29,6 +34,7 @@ const DEFAULT_MESSAGES = [
 
 class MessageStore extends EventTarget {
 	#messages = [];
+	#recipient = { ...DEFAULT_RECIPIENT };
 	#saveDebounceId = null;
 
 	constructor() {
@@ -40,23 +46,27 @@ class MessageStore extends EventTarget {
 			const raw = localStorage.getItem(CHAT_STORAGE_KEY);
 			if (!raw) {
 				this.#messages = this.#withIdsAndTimestamps(DEFAULT_MESSAGES);
+				this.#recipient = { ...DEFAULT_RECIPIENT };
 				this.save();
 				this.#emitChange('init-defaults');
 				return;
 			}
 			const parsed = JSON.parse(raw);
-			const { messages, migrated } = this.#migrateStoredData(parsed);
+			const { messages, recipient, migrated } = this.#migrateStoredData(parsed);
 			if (Array.isArray(messages)) {
 				this.#messages = messages;
+				this.#recipient = recipient || { ...DEFAULT_RECIPIENT };
 				if (migrated) this.save();
 				this.#emitChange('load');
 			} else {
 				this.#messages = this.#withIdsAndTimestamps(DEFAULT_MESSAGES);
+				this.#recipient = { ...DEFAULT_RECIPIENT };
 				this.save();
 				this.#emitChange('init-defaults');
 			}
 		} catch (_err) {
 			this.#messages = this.#withIdsAndTimestamps(DEFAULT_MESSAGES);
+			this.#recipient = { ...DEFAULT_RECIPIENT };
 			this.save();
 			this.#emitChange('init-defaults');
 		}
@@ -67,6 +77,7 @@ class MessageStore extends EventTarget {
 			const payload = {
 				version: CURRENT_SCHEMA_VERSION,
 				messages: this.#messages,
+				recipient: this.#recipient,
 			};
 			localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(payload));
 		} catch (_err) {
@@ -76,6 +87,30 @@ class MessageStore extends EventTarget {
 
 	getMessages() {
 		return this.#messages.slice();
+	}
+
+	getRecipient() {
+		return { ...this.#recipient };
+	}
+
+	updateRecipient(patch) {
+		if (!patch || typeof patch !== 'object') return;
+		const next = { ...this.#recipient };
+		if (Object.prototype.hasOwnProperty.call(patch, 'name')) {
+			next.name = String(patch.name ?? '').trim();
+		}
+		if (Object.prototype.hasOwnProperty.call(patch, 'location')) {
+			next.location = String(patch.location ?? '').trim();
+		}
+	
+		if (
+			next.name === this.#recipient.name &&
+			next.location === this.#recipient.location
+		)
+			return;
+		this.#recipient = next;
+		this.#scheduleSave();
+		this.#emitChange('recipient');
 	}
 
 	addMessage(afterId) {
@@ -128,6 +163,7 @@ class MessageStore extends EventTarget {
 	clear() {
 		// "Clear" resets to the app's initial default chat.
 		this.#messages = this.#withIdsAndTimestamps(DEFAULT_MESSAGES);
+		this.#recipient = { ...DEFAULT_RECIPIENT };
 		this.#scheduleSave();
 		this.#emitChange('clear');
 	}
@@ -136,6 +172,7 @@ class MessageStore extends EventTarget {
 		const payload = {
 			version: CURRENT_SCHEMA_VERSION,
 			messages: this.#messages,
+			recipient: this.#recipient,
 		};
 		return pretty ? JSON.stringify(payload, null, 2) : JSON.stringify(payload);
 	}
@@ -148,6 +185,13 @@ class MessageStore extends EventTarget {
 			return console.error('Invalid JSON');
 			// TODO: Handle this error gracefully
 		}
+		const importedRecipient =
+			parsed &&
+			typeof parsed === 'object' &&
+			parsed.recipient &&
+			typeof parsed.recipient === 'object'
+				? parsed.recipient
+				: null;
 		let imported = Array.isArray(parsed)
 			? parsed
 			: parsed && Array.isArray(parsed.messages)
@@ -166,7 +210,16 @@ class MessageStore extends EventTarget {
 			})
 			.filter(this.#isValidMessage.bind(this));
 		this.#ensureMessageIds(imported);
+		this.#ensureMessageTimestamps(imported);
 		this.#messages = imported;
+		if (importedRecipient) {
+			const next = { ...this.#recipient };
+			if (typeof importedRecipient.name === 'string')
+				next.name = importedRecipient.name.trim();
+			if (typeof importedRecipient.location === 'string')
+				next.location = importedRecipient.location.trim();
+			this.#recipient = next;
+		}
 		this.#scheduleSave();
 		this.#emitChange('import');
 	}
@@ -182,7 +235,12 @@ class MessageStore extends EventTarget {
 	#emitChange(reason, message = null) {
 		this.dispatchEvent(
 			new CustomEvent('messages:changed', {
-				detail: { reason, message, messages: this.getMessages() },
+				detail: {
+					reason,
+					message,
+					messages: this.getMessages(),
+					recipient: this.getRecipient(),
+				},
 				bubbles: false,
 				composed: false,
 			}),
@@ -226,6 +284,21 @@ class MessageStore extends EventTarget {
 		) {
 			let messages = Array.isArray(parsed.messages) ? parsed.messages : [];
 			let changed = false;
+			const recipientRaw =
+				parsed.recipient && typeof parsed.recipient === 'object'
+					? parsed.recipient
+					: null;
+			const recipient = {
+				name:
+					recipientRaw && typeof recipientRaw.name === 'string'
+						? recipientRaw.name.trim()
+						: DEFAULT_RECIPIENT.name,
+				location:
+					recipientRaw && typeof recipientRaw.location === 'string'
+						? recipientRaw.location.trim()
+						: DEFAULT_RECIPIENT.location,
+			};
+			if (!recipientRaw) changed = true;
 			messages = messages
 				.map((m) => {
 					if (m && typeof m.timestamp === 'number') {
@@ -236,10 +309,37 @@ class MessageStore extends EventTarget {
 				})
 				.filter(this.#isValidMessage.bind(this));
 			if (this.#ensureMessageIds(messages)) changed = true;
+			if (this.#ensureMessageTimestamps(messages)) changed = true;
 			migrated = migrated || changed;
-			return { messages, migrated };
+			return { messages, recipient, migrated };
 		}
-		return { messages: null, migrated };
+
+		// Migrate schema v1 -> v2 by adding recipient info.
+		if (
+			parsed &&
+			typeof parsed === 'object' &&
+			parsed.version === 1 &&
+			Array.isArray(parsed.messages)
+		) {
+			let messages = parsed.messages;
+			let changed = true;
+			messages = messages
+				.map((m) => {
+					if (m && typeof m.timestamp === 'number') {
+						return { ...m, timestamp: new Date(m.timestamp).toISOString() };
+					}
+					return m;
+				})
+				.filter(this.#isValidMessage.bind(this));
+			if (this.#ensureMessageIds(messages)) changed = true;
+			if (this.#ensureMessageTimestamps(messages)) changed = true;
+			return {
+				messages,
+				recipient: { ...DEFAULT_RECIPIENT },
+				migrated: changed,
+			};
+		}
+		return { messages: null, recipient: null, migrated };
 	}
 
 	#isValidMessage(item) {
@@ -271,7 +371,30 @@ class MessageStore extends EventTarget {
 		}
 		return changed;
 	}
+
+	#ensureMessageTimestamps(messages) {
+		let changed = false;
+		const base = Date.now();
+		for (let i = 0; i < messages.length; i++) {
+			const m = messages[i];
+			if (!m || typeof m !== 'object') continue;
+			if (!Object.prototype.hasOwnProperty.call(m, 'timestamp')) {
+				m.timestamp = new Date(base + i * 1000).toISOString();
+				changed = true;
+				continue;
+			}
+			if (
+				m.timestamp === undefined ||
+				m.timestamp === null ||
+				m.timestamp === ''
+			) {
+				m.timestamp = new Date(base + i * 1000).toISOString();
+				changed = true;
+			}
+		}
+		return changed;
+	}
 }
 
 const store = new MessageStore();
-export { store, CHAT_STORAGE_KEY, CURRENT_SCHEMA_VERSION };
+export { store, MessageStore, CHAT_STORAGE_KEY, CURRENT_SCHEMA_VERSION };

@@ -2,6 +2,7 @@ import { store } from './store.js';
 import './sender-switch.js';
 import './icon-arrow.js';
 import { html } from '../utils/template.js';
+import { arrowSvg } from './icons/arrow-svg.js';
 
 /**
  * @typedef {Object} ChatImage
@@ -79,16 +80,86 @@ class ChatPreview extends HTMLElement {
 					width: 100%;
 					top: 0;
 					left: 0;
-					display: flex;
+					display: grid;
+					grid-template-columns: 1fr auto 1fr;
+					align-items: center;
 					padding-inline: var(--padding-inline);
-					justify-content: space-between;
 					background: var(--color-header);
 					border-bottom: 1px solid var(--color-edge);
 					-webkit-backdrop-filter: var(--backdrop-filter);
 					backdrop-filter: var(--backdrop-filter);
-					padding-block: 0.5rem;
+					padding-block: 0.7rem;
 					user-select: none;
 					z-index: 4;
+
+					@media (min-width: 900px) {
+						grid-template-columns: 1fr;
+					}
+				}
+
+				.preview-header icon-arrow {
+					justify-self: start;
+				}
+
+				.header-right {
+					justify-self: end;
+					min-width: 1px; /* keep the third column from collapsing weirdly */
+				}
+
+				.recipient-info {
+					justify-self: center;
+					display: flex;
+					flex-direction: column;
+					align-items: center;
+					gap: calc(2rem / 14);
+					line-height: 1.05;
+					min-width: 0;
+				}
+
+				.recipient-avatar {
+					font-family: var(--font-rounded);
+					width: calc(44rem / 14);
+					aspect-ratio: 1 / 1;
+					border-radius: 100%;
+					display: grid;
+					place-items: center;
+					font-size: calc(var(--font-size) * 1.25);
+					font-weight: 900;
+					background: linear-gradient(
+						to bottom,
+						var(--color-recipient-avatar-top),
+						var(--color-recipient-avatar-bottom)
+					);
+					color: white;
+					margin-bottom: calc(6rem / 14);
+				}
+
+				.recipient-name-container {
+					display: flex;
+					align-items: center;
+					gap: calc(4rem / 14);
+
+					.recipient-name {
+						font-size: var(--font-size-small);
+						color: var(--color-ink);
+						white-space: nowrap;
+						max-width: 40dvw;
+					}
+
+					svg {
+						height: calc(var(--font-size-small) * 0.7);
+						transform: scaleX(-1);
+						color: var(--color-ink-subdued);
+					}
+				}
+
+				.recipient-location {
+					font-size: calc(var(--font-size-small) * 0.9);
+					color: var(--color-ink-subdued);
+					white-space: nowrap;
+					overflow: hidden;
+					text-overflow: ellipsis;
+					max-width: 55dvw;
 				}
 
 				/* On wide layouts we show editor + preview simultaneously, so hide mode switch */
@@ -107,8 +178,8 @@ class ChatPreview extends HTMLElement {
 					overflow-y: scroll;
 					background: linear-gradient(
 						to top,
-						var(--color-native-sender),
-						var(--color-native-sender-faded)
+						var(--color-bubble-self),
+						var(--color-bubble-self-faded)
 					);
 
 					/*transition: opacity 180ms ease-in;*/
@@ -217,14 +288,14 @@ class ChatPreview extends HTMLElement {
 					}
 
 					.other &.message {
-						background-color: var(--color-recipient);
+						background-color: var(--color-bubble-other);
 						color: var(--color-ink);
-						fill: var(--color-recipient);
+						fill: var(--color-bubble-other);
 					}
 
 					.other &.mask {
-						background-color: var(--color-recipient);
-						fill: var(--color-recipient);
+						background-color: var(--color-bubble-other);
+						fill: var(--color-bubble-other);
 					}
 
 					svg {
@@ -325,7 +396,7 @@ class ChatPreview extends HTMLElement {
 						align-self: flex-end;
 						cursor: pointer;
 						color: white;
-						background-color: var(--color-native-sender);
+						background-color: var(--color-bubble-self);
 						min-height: calc(
 							1lh + 2 * var(--message-padding-block) - 2 * var(--tight-padding)
 						);
@@ -403,7 +474,7 @@ class ChatPreview extends HTMLElement {
 							background-color: color-mix(
 								in oklab,
 								var(--color-menu) 20%,
-								var(--color-native-sender) 80%
+								var(--color-bubble-self) 80%
 							);
 						}
 					}
@@ -425,7 +496,21 @@ class ChatPreview extends HTMLElement {
 			<section class="window">
 				<header class="preview-header">
 					<icon-arrow text="Edit" activates-mode="edit"></icon-arrow>
-					<div class="recipient-info"></div>
+					<div class="recipient-info">
+						<div
+							class="recipient-avatar"
+							id="recipientAvatar"
+							aria-hidden="true"
+						>
+							?
+						</div>
+						<div class="recipient-name-container">
+							<div class="recipient-name" id="recipientName">Recipient</div>
+							${arrowSvg()}
+						</div>
+						<div class="recipient-location" id="recipientLocation"></div>
+					</div>
+					<div class="header-right" aria-hidden="true"></div>
 				</header>
 				<div class="message-list">
 					<div class="message-list-spacer" aria-hidden="true"></div>
@@ -501,7 +586,12 @@ class ChatPreview extends HTMLElement {
 			optionsContainer: this.shadowRoot.querySelector('.options-container'),
 			senderSwitch: this.shadowRoot.querySelector('#senderSwitch'),
 			importFile: this.shadowRoot.querySelector('#import-file'),
+			recipientAvatar: this.shadowRoot.querySelector('#recipientAvatar'),
+			recipientName: this.shadowRoot.querySelector('#recipientName'),
+			recipientLocation: this.shadowRoot.querySelector('#recipientLocation'),
 		};
+
+		this.#renderRecipient(store.getRecipient());
 
 		// Mark host for touch capability to control send-button visibility
 		const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -613,7 +703,8 @@ class ChatPreview extends HTMLElement {
 	 * @param {CustomEvent<StoreChangeDetail>} e
 	 */
 	_onStoreChange(e) {
-		const { reason, message, messages } = e.detail || {};
+		const { reason, message, messages, recipient } = e.detail || {};
+		if (recipient) this.#renderRecipient(recipient);
 		switch (reason) {
 			case 'add':
 				this.#renderAdd(message, messages);
@@ -628,6 +719,9 @@ class ChatPreview extends HTMLElement {
 			case 'clear':
 				this.#renderReset(messages);
 				this._scrollToBottom();
+				break;
+			case 'recipient':
+				// No-op: header was already synced above; don't touch messages/scroll.
 				break;
 			default:
 				this.#renderReset(messages);
@@ -1165,6 +1259,42 @@ class ChatPreview extends HTMLElement {
 			clearTimeout(timeout);
 			timeout = setTimeout(() => func.apply(this, args), wait);
 		};
+	}
+
+	#getInitials(name) {
+		const str = String(name ?? '').trim();
+		if (!str) return '?';
+
+		const parts = str.split(/\s+/).filter(Boolean);
+		if (parts.length === 0) return '?';
+
+		// Use first letter of first + last word (or just first if single word).
+		const first = Array.from(parts[0])[0] || '';
+		const last =
+			parts.length > 1 ? Array.from(parts[parts.length - 1])[0] || '' : '';
+		return first + last || '?';
+	}
+
+	#renderRecipient(recipient) {
+		if (!recipient || typeof recipient !== 'object') return;
+		const nameRaw =
+			typeof recipient.name === 'string' ? recipient.name.trim() : '';
+		const locationRaw =
+			typeof recipient.location === 'string' ? recipient.location.trim() : '';
+
+		const name = nameRaw || 'Recipient';
+		const location = locationRaw;
+
+		if (this.$?.recipientName) this.$.recipientName.textContent = name;
+
+		const initials = this.#getInitials(name);
+		if (this.$?.recipientAvatar)
+			this.$.recipientAvatar.textContent = String(initials).toUpperCase();
+
+		if (this.$?.recipientLocation) {
+			this.$.recipientLocation.textContent = location;
+			this.$.recipientLocation.style.display = location ? '' : 'none';
+		}
 	}
 }
 

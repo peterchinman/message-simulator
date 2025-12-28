@@ -28,13 +28,13 @@ class SenderSwitch extends HTMLElement {
 					line-height: var(--line-height);
 					width: calc(48rem / 14);
 					height: calc(32rem / 14);
-					background-color: var(--color-recipient);
+					background-color: var(--color-bubble-other);
 					border-radius: calc(16rem / 14);
 					cursor: pointer;
 					transition: background-color 0.3s ease-in-out;
 
 					&:has(input:checked) {
-						background-color: var(--color-native-sender);
+						background-color: var(--color-bubble-self);
 					}
 
 					input {

@@ -127,8 +127,11 @@ class MessageCard extends HTMLElement {
 					width: calc(32rem / 14);
 					height: calc(32rem / 14);
 					border-radius: 100%;
-					background: var(--color-recipient);
+					background: var(--color-bubble-other);
 					color: var(--color-ink-subdued);
+				}
+				.insert-image-button {
+					display: none !important;
 				}
 				button:active {
 					transform: translateY(1px);
@@ -186,7 +189,11 @@ class MessageCard extends HTMLElement {
 								/>
 							</svg>
 						</button>
-						<button part="insert-image" data-tooltip="Insert image">
+						<button
+							class="insert-image-button"
+							part="insert-image"
+							data-tooltip="Insert image"
+						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								viewbox="0 0 33 28"
