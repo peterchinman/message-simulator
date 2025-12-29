@@ -42,14 +42,20 @@ class ChatPreview extends HTMLElement {
 		this._sendNow = this._sendNow.bind(this);
 		this._scheduleShrinkWrapAll = this._scheduleShrinkWrapAll.bind(this);
 		this._onEditorFocusMessage = this._onEditorFocusMessage.bind(this);
+		this._onMessageListScroll = this._onMessageListScroll.bind(this);
 
 		this._shrinkWrapAllRafId = null;
 		this._shrinkWrapForRafId = null;
 		this._scrollRafId = null;
 		this._focusMessageRafId = null;
+		this._iosGradientSyncRafId = null;
 	}
 
 	connectedCallback() {
+		// iOS Safari breaks `mix-blend-mode` inside large overflow scrollers (tiled
+		// backing store). We switch to an iOS-specific, non-blend rendering path.
+		this.classList.toggle('ios', Boolean(isIOS));
+
 		this.shadowRoot.innerHTML = html`
       <style>
 				*,
@@ -187,12 +193,34 @@ class ChatPreview extends HTMLElement {
 					/*transition: opacity 180ms ease-in;*/
 				}
 
+				/* iOS Safari breaks mix-blend-mode inside large overflow scrollers once
+				   it switches to a tiled backing store. On iOS we avoid blend-mode and
+				   instead paint the gradient directly into self bubbles (aligned via CSS vars). */
+				:host(.ios) .message-list {
+					background: var(--color-page);
+					--scroll-top: 0px;
+					--list-height: 0px;
+				}
+
+				:host(.ios) .container.mask {
+					/* Keep the mask container in-flow so message rows retain their height,
+					   but disable blend-mode painting (we render self bubbles directly). */
+					mix-blend-mode: normal;
+					background-color: transparent;
+					pointer-events: none;
+				}
+
+				:host(.ios) .container.mask .bubble {
+					visibility: hidden;
+				}
+
 				/* Fills any unused space at the bottom of the scroll area with page color */
 				.message-list-spacer {
 					flex: 1 0 0px;
 					width: 100%;
 					background: var(--color-page);
 					pointer-events: none;
+					padding-bottom: var(--bottom-area-height, 0px);
 				}
 
 				.shrink-wrap-pending {
@@ -212,10 +240,6 @@ class ChatPreview extends HTMLElement {
 						padding-top: calc(
 							var(--message-spacing) + var(--preview-header-height, 0px)
 						);
-					}
-
-					&:last-child .container {
-						padding-bottom: var(--bottom-area-height, 0px);
 					}
 
 					&.self:has(+ .self),
@@ -314,6 +338,53 @@ class ChatPreview extends HTMLElement {
 					}
 				}
 
+				/* iOS-only: replace blend-mode masking with per-bubble gradient painting
+				   (aligned to the message-list gradient coordinate space via CSS vars). */
+				:host(.ios) .message-row.self .bubble.message {
+					background-image: linear-gradient(
+						to top,
+						var(--color-bubble-self),
+						var(--color-bubble-self-faded)
+					);
+					background-repeat: no-repeat;
+					background-size: 100% var(--list-height, 0px);
+					background-position: 0
+						calc(-1 * (var(--bubble-offset-top, 0px) - var(--scroll-top, 0px)));
+				}
+
+				:host(.ios) .message-row.self .bubble.message svg.message-tail {
+					display: none;
+				}
+
+				:host(.ios) .message-row.self .bubble.message::after {
+					content: '';
+					position: absolute;
+					bottom: 0;
+					right: var(--message-tail-offset);
+					width: calc(10.5rem / 14);
+					height: calc(14rem / 14);
+
+					background-image: linear-gradient(
+						to top,
+						var(--color-bubble-self),
+						var(--color-bubble-self-faded)
+					);
+					background-repeat: no-repeat;
+					background-size: 100% var(--list-height, 0px);
+					background-position: 0
+						calc(-1 * (var(--bubble-offset-top, 0px) - var(--scroll-top, 0px)));
+
+					-webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2021%2028'%3E%3Cpath%20fill%3D'white'%20d%3D'M21.006%2C27.636C21.02%2C27.651%2011.155%2C30.269%201.302%2C21.384C0.051%2C20.256%200.065%2C15.626%200.006%2C14.004C-0.253%2C6.917%208.514%2C-0.156%2011.953%2C0.003L11.953%2C13.18C11.953%2C17.992%2012.717%2C23.841%2021.006%2C27.636Z'%2F%3E%3C%2Fsvg%3E");
+					-webkit-mask-repeat: no-repeat;
+					-webkit-mask-size: 100% 100%;
+					-webkit-mask-position: 0 0;
+				}
+
+				/* Match the existing "no tail for consecutive messages" behavior. */
+				:host(.ios) .message-row.self:has(+ .self) .bubble.message::after {
+					display: none;
+				}
+
 				.bubble.image-bubble {
 					padding: 0;
 					background-color: transparent !important;
@@ -367,6 +438,7 @@ class ChatPreview extends HTMLElement {
 					gap: 0.5rem;
 					background: var(--color-overlay);
 					backdrop-filter: var(--backdrop-filter);
+					-webkit-backdrop-filter: var(--backdrop-filter);
 				}
 
 				.input-container {
@@ -603,6 +675,11 @@ class ChatPreview extends HTMLElement {
 		// Events
 		this.$.input.addEventListener('keydown', this._onKeyDown);
 		this.$.input.addEventListener('input', this._onInput);
+		if (this.$.messageList) {
+			this.$.messageList.addEventListener('scroll', this._onMessageListScroll, {
+				passive: true,
+			});
+		}
 		this.$.send.addEventListener('pointerdown', (e) => {
 			e.preventDefault();
 			this._sendNow(e);
@@ -690,10 +767,17 @@ class ChatPreview extends HTMLElement {
 		this.#renderAll(store.getMessages());
 		this._shrinkWrapInit();
 		this._scrollToBottom();
+		this._scheduleIOSGradientSync();
 	}
 
 	disconnectedCallback() {
 		store.removeEventListener('messages:changed', this._onStoreChange);
+		if (this.$?.messageList) {
+			this.$.messageList.removeEventListener(
+				'scroll',
+				this._onMessageListScroll,
+			);
+		}
 		document.removeEventListener(
 			'editor:focus-message',
 			this._onEditorFocusMessage,
@@ -832,6 +916,39 @@ class ChatPreview extends HTMLElement {
 		if (this._scrollRafId) cancelAnimationFrame(this._scrollRafId);
 		this._scrollRafId = requestAnimationFrame(() => {
 			messageList.scrollTo({ top: messageList.scrollHeight, behavior });
+		});
+	}
+
+	_onMessageListScroll() {
+		this._scheduleIOSGradientSync();
+	}
+
+	/**
+	 * iOS-only: keep self-bubble gradients aligned to the (virtual) message-list
+	 * gradient coordinate space using CSS variables.
+	 */
+	_scheduleIOSGradientSync() {
+		if (!isIOS) return;
+		const list = this.$?.messageList;
+		if (!list) return;
+		if (this._iosGradientSyncRafId)
+			cancelAnimationFrame(this._iosGradientSyncRafId);
+		this._iosGradientSyncRafId = requestAnimationFrame(() => {
+			list.style.setProperty('--scroll-top', `${list.scrollTop}px`);
+			list.style.setProperty('--list-height', `${list.clientHeight}px`);
+
+			const listRect = list.getBoundingClientRect();
+			const selfBubbles = list.querySelectorAll(
+				'.message-row.self .bubble.message',
+			);
+			for (const bubble of selfBubbles) {
+				const r = bubble.getBoundingClientRect();
+				const yVisible = r.top - listRect.top;
+				const yContent = yVisible + list.scrollTop;
+				bubble.style.setProperty('--bubble-offset-top', `${yContent}px`);
+			}
+
+			this._iosGradientSyncRafId = null;
 		});
 	}
 
@@ -1195,6 +1312,7 @@ class ChatPreview extends HTMLElement {
 				}
 			}
 			this._shrinkWrapForRafId = null;
+			this._scheduleIOSGradientSync();
 		});
 	}
 	/** Apply shrink-wrap to all message bubbles. */
@@ -1202,6 +1320,7 @@ class ChatPreview extends HTMLElement {
 		this.shadowRoot.querySelectorAll('.bubble').forEach((el) => {
 			this.#applyShrinkWrapToBubble(el);
 		});
+		this._scheduleIOSGradientSync();
 	}
 	/**
 	 * Measure and apply shrink-wrap styles to a single bubble element.
