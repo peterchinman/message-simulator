@@ -113,6 +113,7 @@ class MessageCard extends HTMLElement {
 
 					svg {
 						height: calc(28rem / 14);
+						width: calc(28rem / 14);
 						color: var(--color-ink-subdued);
 					}
 				}
