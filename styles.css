@@ -107,7 +107,8 @@ html {
 body {
 	height: calc(var(--vh, 1dvh) * 100);
 	max-width: 100dvw;
-	overflow-x: hidden;
+	overflow: hidden;
+	overscroll-behavior: none;
 
 	font-family: var(--font-base);
 	background: var(--color-page);
