@@ -10,10 +10,10 @@
  *    - For regular DOM: initTooltips()
  *    - For Shadow DOM: initTooltips(shadowRoot, hostElement)
  *
- * For Shadow DOM components, also adopt the tooltip stylesheet:
- *   import { initTooltips, tooltipStyles } from './utils/tooltip.js';
- *   this.shadowRoot.adoptedStyleSheets = [tooltipStyles];
- *   initTooltips(this.shadowRoot, this);
+ * Notes:
+ * - Tooltips are rendered in a global "portal" attached to document.body so they
+ *   always appear above adjacent content (and avoid Shadow DOM clipping/stacking issues).
+ * - initTooltips() will inject the needed global tooltip CSS into <head> once.
  *
  * Examples:
  *   Simple tooltip:
@@ -36,53 +36,57 @@
  *   </script>
  */
 
-// Create a constructable stylesheet for tooltip styles (can be shared across Shadow DOM)
-const tooltipStylesheet = new CSSStyleSheet();
-tooltipStylesheet.replaceSync(/* css */ `
-	[data-tooltip] {
-		position: relative;
-		--tooltip-offset-x: 0px;
-		--tooltip-arrow-offset-x: 0px;
+const TOOLTIP_STYLE_TAG_ID = 'message-simulator-tooltip-styles';
+const TOOLTIP_LAYER_ID = 'message-simulator-tooltip-layer';
+
+const TOOLTIP_CSS_TEXT = /* css */ `
+	.${TOOLTIP_LAYER_ID} {
+		position: fixed;
+		inset: 0;
+		pointer-events: none;
+		z-index: 2147483647;
 	}
 
-	[data-tooltip] .tooltip-content {
-		position: absolute;
-		bottom: calc(100% + 8rem / 14);
-		left: 50%;
-		transform: translateX(calc(-50% + var(--tooltip-offset-x)));
+	.${TOOLTIP_LAYER_ID} .tooltip-bubble {
+		position: fixed;
+		left: 0;
+		top: 0;
 		background: var(--color-ink);
 		color: var(--color-page);
+		--tooltip-arrow-x: 50%;
 		padding: calc(6rem / 14) calc(10rem / 14);
 		border-radius: calc(4rem / 14);
 		font-size: calc(12rem / 14);
 		line-height: calc(16rem / 14);
-		white-space: nowrap;
 		opacity: 0;
-		pointer-events: none;
-		transition: opacity 0.15s ease-in-out 0.5s;
-		z-index: 1000;
+		transition: opacity 0.15s ease-in-out;
 		display: flex;
 		flex-direction: column;
 		gap: calc(4rem / 14);
 		min-width: max-content;
+		max-width: min(200px, calc(100dvw - 16px));
+		white-space: nowrap;
 	}
 
-	[data-tooltip] .tooltip-content.has-subtext {
+	.${TOOLTIP_LAYER_ID}[data-visible='true'] .tooltip-bubble {
+		opacity: 1;
+	}
+
+	.${TOOLTIP_LAYER_ID} .tooltip-bubble.has-subtext {
 		white-space: normal;
-		max-width: 200px;
 	}
 
-	[data-tooltip] .tooltip-main {
+	.${TOOLTIP_LAYER_ID} .tooltip-main {
 		display: flex;
 		align-items: center;
 		gap: calc(8rem / 14);
 	}
 
-	[data-tooltip] .tooltip-text {
+	.${TOOLTIP_LAYER_ID} .tooltip-text {
 		flex: 1;
 	}
 
-	[data-tooltip] .tooltip-hotkey {
+	.${TOOLTIP_LAYER_ID} .tooltip-hotkey {
 		background: oklch(from var(--color-page) l c h / 0.25);
 		padding: calc(2rem / 14) calc(6rem / 14);
 		border-radius: calc(3rem / 14);
@@ -91,33 +95,82 @@ tooltipStylesheet.replaceSync(/* css */ `
 		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace;
 	}
 
-	[data-tooltip] .tooltip-subtext {
+	.${TOOLTIP_LAYER_ID} .tooltip-subtext {
 		font-size: calc(11rem / 14);
 		opacity: 0.8;
 		line-height: calc(14rem / 14);
 	}
 
-	[data-tooltip]::before {
-		content: '';
+	.${TOOLTIP_LAYER_ID} .tooltip-arrow {
+		--tooltip-arrow-size: calc(4rem / 14);
 		position: absolute;
-		bottom: calc(100% + 2rem / 14);
-		left: 50%;
-		transform: translateX(calc(-50% + var(--tooltip-arrow-offset-x)));
-		border: calc(4rem / 14) solid transparent;
+		left: var(--tooltip-arrow-x);
+		width: 0;
+		height: 0;
+		/* width is 0, so translateX(-50%) won't center; use margin-left instead */
+		margin-left: calc(-1 * var(--tooltip-arrow-size));
+		border: var(--tooltip-arrow-size) solid transparent;
+	}
+
+	.${TOOLTIP_LAYER_ID} .tooltip-bubble[data-placement='above'] .tooltip-arrow {
+		top: 100%;
 		border-top-color: var(--color-ink);
-		opacity: 0;
-		pointer-events: none;
-		transition: opacity 0.15s ease-in-out 0.5s;
-		z-index: 1000;
 	}
 
-	[data-tooltip]:hover .tooltip-content,
-	[data-tooltip]:hover::before {
-		opacity: 1;
+	.${TOOLTIP_LAYER_ID} .tooltip-bubble[data-placement='below'] .tooltip-arrow {
+		bottom: 100%;
+		border-bottom-color: var(--color-ink);
 	}
-`);
+`;
 
-export const tooltipStyles = tooltipStylesheet;
+function ensureGlobalTooltipStyles() {
+	if (document.getElementById(TOOLTIP_STYLE_TAG_ID)) return;
+	const style = document.createElement('style');
+	style.id = TOOLTIP_STYLE_TAG_ID;
+	style.textContent = TOOLTIP_CSS_TEXT;
+	document.head.appendChild(style);
+}
+
+function getOrCreateTooltipLayer() {
+	/** @type {HTMLElement|null} */
+	let layer = document.getElementById(TOOLTIP_LAYER_ID);
+	if (layer) return layer;
+
+	layer = document.createElement('div');
+	layer.id = TOOLTIP_LAYER_ID;
+	layer.className = TOOLTIP_LAYER_ID;
+	layer.setAttribute('aria-hidden', 'true');
+
+	const bubble = document.createElement('div');
+	bubble.className = 'tooltip-bubble';
+	bubble.setAttribute('role', 'tooltip');
+	bubble.setAttribute('data-placement', 'above');
+
+	const mainRow = document.createElement('div');
+	mainRow.className = 'tooltip-main';
+
+	const textSpan = document.createElement('span');
+	textSpan.className = 'tooltip-text';
+	mainRow.appendChild(textSpan);
+
+	const hotkeySpan = document.createElement('span');
+	hotkeySpan.className = 'tooltip-hotkey';
+	mainRow.appendChild(hotkeySpan);
+
+	const subtextSpan = document.createElement('span');
+	subtextSpan.className = 'tooltip-subtext';
+
+	const arrow = document.createElement('div');
+	arrow.className = 'tooltip-arrow';
+
+	bubble.appendChild(mainRow);
+	bubble.appendChild(subtextSpan);
+	bubble.appendChild(arrow);
+
+	layer.appendChild(bubble);
+	document.body.appendChild(layer);
+	return layer;
+}
 
 /**
  * Initialize tooltips for elements with data-tooltip attribute
@@ -125,121 +178,154 @@ export const tooltipStyles = tooltipStylesheet;
  * @param {HTMLElement} hostElement - Host element for getting computed styles (for shadow DOM, default: null)
  */
 export function initTooltips(root = document, hostElement = null) {
+	ensureGlobalTooltipStyles();
+	const layer = getOrCreateTooltipLayer();
+	const bubble = layer.querySelector('.tooltip-bubble');
+	const textEl = layer.querySelector('.tooltip-text');
+	const hotkeyEl = layer.querySelector('.tooltip-hotkey');
+	const subtextEl = layer.querySelector('.tooltip-subtext');
+
+	/** @type {HTMLElement|null} */
+	let activeTarget = null;
+
+	function hideTooltip() {
+		activeTarget = null;
+		layer.setAttribute('data-visible', 'false');
+		// Hide immediately (no show-delay on fade-out)
+		if (bubble) bubble.style.transitionDelay = '0s';
+	}
+
+	/**
+	 * @param {HTMLElement} element
+	 */
+	function showTooltipForElement(element) {
+		if (!element || typeof element.getAttribute !== 'function') return;
+		const tooltipText = element.getAttribute('data-tooltip');
+		if (!tooltipText) return;
+
+		activeTarget = element;
+
+		const hotkey = element.getAttribute('data-tooltip-hotkey');
+		const subtext = element.getAttribute('data-tooltip-subtext');
+
+		if (textEl) textEl.textContent = tooltipText;
+
+		if (hotkeyEl) {
+			if (hotkey) {
+				hotkeyEl.textContent = hotkey;
+				hotkeyEl.style.display = '';
+			} else {
+				hotkeyEl.textContent = '';
+				hotkeyEl.style.display = 'none';
+			}
+		}
+
+		if (subtextEl) {
+			if (subtext) {
+				subtextEl.textContent = subtext;
+				subtextEl.style.display = '';
+			} else {
+				subtextEl.textContent = '';
+				subtextEl.style.display = 'none';
+			}
+		}
+
+		if (bubble) {
+			bubble.classList.toggle('has-subtext', Boolean(subtext));
+			// Match previous UX: delay before showing, but not before hiding
+			bubble.style.transitionDelay = '0.5s';
+		}
+
+		positionTooltip(element);
+		layer.setAttribute('data-visible', 'true');
+	}
+
+	function positionTooltip(element) {
+		if (!bubble) return;
+		if (!element || !element.isConnected) return hideTooltip();
+
+		// Get element position relative to viewport
+		const rect = element.getBoundingClientRect();
+		const centerX = rect.left + rect.width / 2;
+
+		const viewportWidth = window.innerWidth;
+		const viewportHeight = window.innerHeight;
+		const padding = 8; // px from viewport edges
+		const gap = 8; // px between element and tooltip
+
+		// Measure bubble
+		const originalVisibility = bubble.style.visibility || '';
+		bubble.style.visibility = 'hidden';
+		bubble.style.left = '0px';
+		bubble.style.top = '0px';
+
+		// Force layout
+		void bubble.offsetWidth;
+		const width = bubble.offsetWidth;
+		const height = bubble.offsetHeight;
+		bubble.style.visibility = originalVisibility;
+
+		// Decide placement (above vs below)
+		const yAbove = rect.top - height - gap;
+		const yBelow = rect.bottom + gap;
+
+		const fitsAbove = yAbove >= padding;
+		const fitsBelow = yBelow + height <= viewportHeight - padding;
+
+		let placement = 'above';
+		let y = yAbove;
+		if (!fitsAbove && fitsBelow) {
+			placement = 'below';
+			y = yBelow;
+		} else if (!fitsAbove && !fitsBelow) {
+			// Pick the side with more available space
+			const spaceAbove = rect.top - padding;
+			const spaceBelow = viewportHeight - padding - rect.bottom;
+			if (spaceBelow > spaceAbove) {
+				placement = 'below';
+				y = Math.min(yBelow, viewportHeight - padding - height);
+			} else {
+				placement = 'above';
+				y = Math.max(yAbove, padding);
+			}
+		}
+
+		// Clamp horizontally within viewport
+		const xIdeal = centerX - width / 2;
+		const x = Math.max(
+			padding,
+			Math.min(xIdeal, viewportWidth - padding - width),
+		);
+
+		// Arrow position within bubble
+		const arrowEdgePadding = 10;
+		const arrowX = Math.max(
+			arrowEdgePadding,
+			Math.min(centerX - x, width - arrowEdgePadding),
+		);
+
+		bubble.setAttribute('data-placement', placement);
+		bubble.style.left = `${x}px`;
+		bubble.style.top = `${y}px`;
+		bubble.style.setProperty('--tooltip-arrow-x', `${arrowX}px`);
+	}
+
 	const tooltipElements = root.querySelectorAll('[data-tooltip]');
 	tooltipElements.forEach((element) => {
-		// Create tooltip content element if it doesn't exist
-		if (!element.querySelector('.tooltip-content')) {
-			createTooltipContent(element);
-		}
 		element.addEventListener('mouseenter', (e) => {
-			positionTooltip(e.currentTarget, root, hostElement);
+			showTooltipForElement(e.currentTarget);
 		});
+		element.addEventListener('mouseleave', () => hideTooltip());
+		element.addEventListener('focus', (e) => {
+			showTooltipForElement(e.currentTarget);
+		});
+		element.addEventListener('blur', () => hideTooltip());
 	});
-}
-
-/**
- * Create the tooltip content structure based on data attributes
- * @param {HTMLElement} element - Element with data-tooltip attribute
- */
-function createTooltipContent(element) {
-	const tooltipText = element.getAttribute('data-tooltip');
-	const hotkey = element.getAttribute('data-tooltip-hotkey');
-	const subtext = element.getAttribute('data-tooltip-subtext');
-
-	if (!tooltipText) return;
-
-	const tooltipContent = document.createElement('div');
-	tooltipContent.className = 'tooltip-content';
-	if (subtext) {
-		tooltipContent.classList.add('has-subtext');
-	}
-
-	const mainRow = document.createElement('div');
-	mainRow.className = 'tooltip-main';
-
-	const textSpan = document.createElement('span');
-	textSpan.className = 'tooltip-text';
-	textSpan.textContent = tooltipText;
-	mainRow.appendChild(textSpan);
-
-	if (hotkey) {
-		const hotkeySpan = document.createElement('span');
-		hotkeySpan.className = 'tooltip-hotkey';
-		hotkeySpan.textContent = hotkey;
-		mainRow.appendChild(hotkeySpan);
-	}
-
-	tooltipContent.appendChild(mainRow);
-
-	if (subtext) {
-		const subtextSpan = document.createElement('span');
-		subtextSpan.className = 'tooltip-subtext';
-		subtextSpan.textContent = subtext;
-		tooltipContent.appendChild(subtextSpan);
-	}
-
-	element.appendChild(tooltipContent);
-}
-
-/**
- * Position a tooltip to avoid screen edges
- * @param {HTMLElement} element - Element with data-tooltip attribute
- * @param {HTMLElement|ShadowRoot} root - Root element or shadow root (for creating temp elements)
- * @param {HTMLElement} hostElement - Host element for getting computed styles
- */
-function positionTooltip(element, root, hostElement) {
-	const tooltipContent = element.querySelector('.tooltip-content');
-	if (!tooltipContent) return;
-
-	// Get computed styles from host element or document
-	const stylesSource = hostElement || document.documentElement;
-	const hostStyles = window.getComputedStyle(stylesSource);
-
-	// Measure the actual tooltip content element
-	// Temporarily make it visible for accurate measurement
-	const originalOpacity = tooltipContent.style.opacity || '';
-	const originalVisibility = tooltipContent.style.visibility || '';
-	const originalDisplay = tooltipContent.style.display || '';
-	tooltipContent.style.opacity = '0';
-	tooltipContent.style.visibility = 'hidden';
-	tooltipContent.style.display = 'flex';
-
-	// Force a reflow to ensure accurate measurement
-	void tooltipContent.offsetWidth;
-
-	const tooltipWidth = tooltipContent.offsetWidth;
-	const tooltipHeight = tooltipContent.offsetHeight;
-
-	// Restore original styles
-	tooltipContent.style.opacity = originalOpacity;
-	tooltipContent.style.visibility = originalVisibility;
-	tooltipContent.style.display = originalDisplay;
-
-	// Get element position relative to viewport
-	const elementRect = element.getBoundingClientRect();
-	const elementCenterX = elementRect.left + elementRect.width / 2;
-
-	// Calculate ideal tooltip position (centered above element)
-	const tooltipLeft = elementCenterX - tooltipWidth / 2;
-	const tooltipRight = tooltipLeft + tooltipWidth;
-
-	// Check viewport boundaries
-	const viewportWidth = window.innerWidth;
-	const padding = 8; // Minimum distance from viewport edge
-
-	let offsetX = 0;
-
-	// If tooltip goes off left edge, shift right
-	if (tooltipLeft < padding) {
-		offsetX = padding - tooltipLeft;
-	}
-	// If tooltip goes off right edge, shift left
-	else if (tooltipRight > viewportWidth - padding) {
-		offsetX = viewportWidth - padding - tooltipWidth - tooltipLeft;
-	}
-
-	// Set CSS custom properties
-	// Arrow stays centered on element (offset 0), tooltip shifts to avoid edges
-	element.style.setProperty('--tooltip-offset-x', `${offsetX}px`);
-	element.style.setProperty('--tooltip-arrow-offset-x', '0px');
+	// Keep positioned when viewport moves
+	const onReposition = () => {
+		if (!activeTarget) return;
+		positionTooltip(activeTarget);
+	};
+	window.addEventListener('scroll', onReposition, true);
+	window.addEventListener('resize', onReposition, { passive: true });
 }

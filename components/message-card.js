@@ -1,5 +1,5 @@
 import { html } from '../utils/template.js';
-import { initTooltips, tooltipStyles } from '../utils/tooltip.js';
+import { initTooltips } from '../utils/tooltip.js';
 import './sender-switch.js';
 
 class MessageCard extends HTMLElement {
@@ -18,8 +18,6 @@ class MessageCard extends HTMLElement {
 	}
 
 	connectedCallback() {
-		this.shadowRoot.adoptedStyleSheets = [tooltipStyles];
-
 		// Detect if running on Mac
 		const isMac =
 			navigator.platform.toUpperCase().indexOf('MAC') >= 0 ||

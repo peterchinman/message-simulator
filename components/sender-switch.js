@@ -1,5 +1,5 @@
 import { html } from '../utils/template.js';
-import { initTooltips, tooltipStyles } from '../utils/tooltip.js';
+import { initTooltips } from '../utils/tooltip.js';
 
 class SenderSwitch extends HTMLElement {
 	static get observedAttributes() {
@@ -13,8 +13,6 @@ class SenderSwitch extends HTMLElement {
 	}
 
 	connectedCallback() {
-		this.shadowRoot.adoptedStyleSheets = [tooltipStyles];
-
 		this.shadowRoot.innerHTML = html`
 			<style>
 				:host {
