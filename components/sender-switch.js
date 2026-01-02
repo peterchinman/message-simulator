@@ -52,12 +52,17 @@ class SenderSwitch extends HTMLElement {
 						border-radius: 50%;
 						transition: left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 
-						filter: drop-shadow(calc(var(--button-size) / 8) 0 4px var(--color-drop-shadow));
+						filter: drop-shadow(
+							calc(var(--button-size) / 8) 0 4px var(--color-drop-shadow)
+						);
 					}
 
 					input:checked + .switch-thumb {
-						left: calc(.5 * var(--button-size) + var(--thumb-padding));
-						filter: drop-shadow(-calc(var(--button-size) / 8) 0 4px var(--color-drop-shadow-intense));
+						left: calc(0.5 * var(--button-size) + var(--thumb-padding));
+						filter: drop-shadow(
+							-calc(var(--button-size) / 8) 0 4px
+								var(--color-drop-shadow-intense)
+						);
 					}
 				}
 			</style>
