@@ -1,6 +1,7 @@
 import { store } from './store.js';
 import './message-card.js';
 import './icon-arrow.js';
+import { initTooltips } from '../utils/tooltip.js';
 import { html } from '../utils/template.js';
 
 class ChatEditor extends HTMLElement {
@@ -121,16 +122,16 @@ class ChatEditor extends HTMLElement {
 			</style>
 			<div class="wrapper">
 				<div class="editor-header">
-					<button id="export-json" title="Export chat as JSON">Export</button>
-					<button id="import-json" title="Import chat from JSON">Import</button>
-					<button id="clear-chat" title="Clear all messages">Clear</button>
-					<button
-						id="toggle-theme"
-						title="Toggle theme"
-						aria-label="Toggle theme"
-					>
-						Theme
+					<button id="export-json" data-tooltip="Export chat as JSON">
+						Export
 					</button>
+					<button id="import-json" data-tooltip="Import chat from JSON">
+						Import
+					</button>
+					<button id="clear-chat" data-tooltip="Clear all messages">
+						Clear
+					</button>
+					<button id="toggle-theme" data-tooltip="Toggle theme">Theme</button>
 					<icon-arrow
 						text="Preview"
 						activates-mode="preview"
@@ -279,6 +280,7 @@ class ChatEditor extends HTMLElement {
 		store.load();
 		this.#syncRecipientInputs(store.getRecipient());
 		this.#render(store.getMessages());
+		initTooltips(this.shadowRoot, this);
 	}
 
 	disconnectedCallback() {
@@ -339,7 +341,6 @@ class ChatEditor extends HTMLElement {
 		const next = current === 'dark' ? 'light' : 'dark';
 		btn.textContent = next === 'dark' ? 'Dark' : 'Light';
 		btn.title = `Switch to ${next} theme`;
-		btn.setAttribute('aria-label', `Switch to ${next} theme`);
 	}
 
 	_onStoreChange(e) {

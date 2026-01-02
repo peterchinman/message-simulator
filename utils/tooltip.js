@@ -59,7 +59,6 @@ const TOOLTIP_CSS_TEXT = /* css */ `
 		font-size: calc(12rem / 14);
 		line-height: calc(16rem / 14);
 		opacity: 0;
-		transition: opacity 0.15s ease-in-out;
 		display: flex;
 		flex-direction: column;
 		gap: calc(4rem / 14);
@@ -232,7 +231,6 @@ export function initTooltips(root = document, hostElement = null) {
 
 		if (bubble) {
 			bubble.classList.toggle('has-subtext', Boolean(subtext));
-			// Match previous UX: delay before showing, but not before hiding
 			bubble.style.transitionDelay = '0.5s';
 		}
 

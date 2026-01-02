@@ -110,24 +110,48 @@ html {
 
 body {
 	height: calc(var(--vh, 1dvh) * 100);
+	max-height: calc(var(--vh, 1dvh) * 100);
 	max-width: 100dvw;
 	overflow: hidden;
 	overscroll-behavior: none;
-
 	font-family: var(--font-base);
 	color: var(--color-ink);
+
+	display: flex;
+	flex-direction: column;
 }
 
 .app-container {
-	width: 100%;
-	height: 100%;
+	flex: 1 1 auto;
+	min-height: 0;
 	display: grid;
 	grid-template-columns: 1fr;
+}
+
+footer {
+	display: none;
+	background: var(--color-header);
+	/* border-top: 1px solid var(--color-edge); */
+	width: 100%;
+	flex: 0 0 auto;
+	color: var(--color-ink-subdued);
+	align-items: center;
+	justify-content: flex-start;
+	padding-inline: 4vw;
+	padding-block: 0.5rem;
+
+	a {
+		color: var(--color-bubble-self);
+	}
 }
 
 @media (min-width: 900px) {
 	.app-container {
 		grid-template-columns: 1fr 1fr;
+	}
+
+	footer {
+		display: flex;
 	}
 }
 .pane--editor,
@@ -172,11 +196,8 @@ body {
 }
 
 @media (min-width: 900px) {
-	body {
-		padding: 4dvw;
-	}
-
 	.app-container {
+		padding: 4dvw;
 		gap: 4dvw;
 	}
 
@@ -200,14 +221,12 @@ body {
 
 	.pane {
 		min-height: 0;
-		height: 100%;
 	}
 
 	.pane--editor chat-editor,
 	.pane--preview chat-preview {
 		display: block;
 		min-height: 0;
-		height: 100%;
 		background: var(--color-page);
 
 		border-radius: calc(18rem / 14);
