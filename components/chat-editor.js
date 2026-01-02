@@ -52,7 +52,7 @@ class ChatEditor extends HTMLElement {
 					border-bottom: 1px solid var(--color-edge);
 					-webkit-backdrop-filter: var(--backdrop-filter);
 					backdrop-filter: var(--backdrop-filter);
-					padding-block: 0.5rem;
+					padding-block: 1rem;
 					flex-wrap: nowrap;
 					overflow-x: auto;
 					user-select: none;
@@ -390,13 +390,13 @@ class ChatEditor extends HTMLElement {
 		);
 		if (!card) return;
 
-		// Remove show-actions from the previously focused card
+		// Remove focused from the previously focused card
 		if (this._lastFocusedCard && this._lastFocusedCard !== card) {
-			this._lastFocusedCard.classList.remove('show-actions');
+			this._lastFocusedCard.classList.remove('focused');
 		}
 
-		// Add show-actions to the newly focused card
-		card.classList.add('show-actions');
+		// Add focused to the newly focused card
+		card.classList.add('focused');
 		this._lastFocusedCard = card;
 
 		// Dispatch event to scroll to this message in chat-preview

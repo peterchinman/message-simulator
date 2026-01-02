@@ -1,5 +1,5 @@
 import { html } from '../utils/template.js';
-import { initTooltips, tooltipStyles } from '../utils/tooltip.js';
+import { initTooltips } from '../utils/tooltip.js';
 
 class SenderSwitch extends HTMLElement {
 	static get observedAttributes() {
@@ -13,11 +13,10 @@ class SenderSwitch extends HTMLElement {
 	}
 
 	connectedCallback() {
-		this.shadowRoot.adoptedStyleSheets = [tooltipStyles];
-
 		this.shadowRoot.innerHTML = html`
 			<style>
 				:host {
+					--thumb-padding: calc(2rem / 14);
 				}
 				.sender-switch-container {
 					font-size: var(--font-size);
@@ -26,10 +25,10 @@ class SenderSwitch extends HTMLElement {
 					position: relative;
 					flex-shrink: 0;
 					line-height: var(--line-height);
-					width: calc(48rem / 14);
-					height: calc(32rem / 14);
+					width: calc(var(--button-size) * 1.5);
+					height: var(--button-size);
 					background-color: var(--color-bubble-other);
-					border-radius: calc(16rem / 14);
+					border-radius: calc(var(--button-size) / 2);
 					cursor: pointer;
 					transition: background-color 0.3s ease-in-out;
 
@@ -45,20 +44,25 @@ class SenderSwitch extends HTMLElement {
 
 					.switch-thumb {
 						position: absolute;
-						left: calc(2rem / 14);
-						top: calc(2rem / 14);
-						width: calc(28rem / 14);
-						height: calc(28rem / 14);
+						left: var(--thumb-padding);
+						top: var(--thumb-padding);
+						width: calc(var(--button-size) - 2 * var(--thumb-padding));
+						height: calc(var(--button-size) - 2 * var(--thumb-padding));
 						background-color: var(--color-page);
 						border-radius: 50%;
 						transition: left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 
-						filter: drop-shadow(4px 0 4px var(--color-drop-shadow));
+						filter: drop-shadow(
+							calc(var(--button-size) / 8) 0 4px var(--color-drop-shadow)
+						);
 					}
 
 					input:checked + .switch-thumb {
-						left: calc(18rem / 14);
-						filter: drop-shadow(-4px 0 4px var(--color-drop-shadow-intense));
+						left: calc(0.5 * var(--button-size) + var(--thumb-padding));
+						filter: drop-shadow(
+							-calc(var(--button-size) / 8) 0 4px
+								var(--color-drop-shadow-intense)
+						);
 					}
 				}
 			</style>

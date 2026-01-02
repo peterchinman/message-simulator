@@ -138,6 +138,13 @@ class ChatPreview extends HTMLElement {
 					);
 					color: white;
 					margin-bottom: calc(6rem / 14);
+
+					.recipient-avatar-text {
+						height: 1lh;
+						padding-top: calc(
+							1rem / 14
+						); /* fudge to try to get text to align */
+					}
 				}
 
 				.recipient-name-container {
@@ -571,12 +578,8 @@ class ChatPreview extends HTMLElement {
 				<header class="preview-header">
 					<icon-arrow text="Edit" activates-mode="edit"></icon-arrow>
 					<div class="recipient-info">
-						<div
-							class="recipient-avatar"
-							id="recipientAvatar"
-							aria-hidden="true"
-						>
-							?
+						<div class="recipient-avatar" aria-hidden="true">
+							<span class="recipient-avatar-text">?</span>
 						</div>
 						<div class="recipient-name-container">
 							<div class="recipient-name" id="recipientName">Recipient</div>
@@ -660,7 +663,7 @@ class ChatPreview extends HTMLElement {
 			optionsContainer: this.shadowRoot.querySelector('.options-container'),
 			senderSwitch: this.shadowRoot.querySelector('#senderSwitch'),
 			importFile: this.shadowRoot.querySelector('#import-file'),
-			recipientAvatar: this.shadowRoot.querySelector('#recipientAvatar'),
+			recipientAvatar: this.shadowRoot.querySelector('.recipient-avatar-text'),
 			recipientName: this.shadowRoot.querySelector('#recipientName'),
 			recipientLocation: this.shadowRoot.querySelector('#recipientLocation'),
 		};
