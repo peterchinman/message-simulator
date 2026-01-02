@@ -141,7 +141,9 @@ class ChatPreview extends HTMLElement {
 
 					.recipient-avatar-text {
 						height: 1lh;
-						padding-top: calc(1rem / 14); /* fudge to try to get text to align */
+						padding-top: calc(
+							1rem / 14
+						); /* fudge to try to get text to align */
 					}
 				}
 
@@ -576,10 +578,7 @@ class ChatPreview extends HTMLElement {
 				<header class="preview-header">
 					<icon-arrow text="Edit" activates-mode="edit"></icon-arrow>
 					<div class="recipient-info">
-						<div
-							class="recipient-avatar"
-							aria-hidden="true"
-						>
+						<div class="recipient-avatar" aria-hidden="true">
 							<span class="recipient-avatar-text">?</span>
 						</div>
 						<div class="recipient-name-container">
