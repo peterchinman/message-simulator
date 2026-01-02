@@ -40,6 +40,8 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 
 	--single-line-message-height: calc(1lh + 2 * var(--message-padding-block));
 
+	--button-size: calc(32rem / 14);
+
 	--color-page: white;
 	--color-ink: black;
 	--color-ink-subdued: #7e7f87;
@@ -90,13 +92,15 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 	--color-drop-shadow-intense: transparent;
 }
 
-@media (min-width: 480px) {
+@media (min-width: 900px) {
 	:root {
 		--font-size: 14px;
 		--font-size-small: 9px;
 		--padding-inline: 1.5rem;
 		--message-padding-inline: calc(8rem / 14);
 		--message-padding-block: calc(4rem / 14);
+
+		--button-size: calc(24rem / 14);
 	}
 }
 
@@ -221,55 +225,5 @@ body {
 		box-shadow:
 			0 16px 48px var(--color-drop-shadow-intense),
 			0 4px 16px var(--color-drop-shadow);
-	}
-}
-
-.mode-switch {
-	font-size: var(--font-size);
-
-	--thumb-padding: calc(2rem / 14);
-	/*--gap: calc(12rem / 14);*/
-	--gap: 0px;
-
-	display: flex;
-	position: relative;
-	padding-inline: var(--thumb-padding);
-	gap: var(--gap);
-	height: calc(32rem / 14);
-	/*line-height: var(--line-height);*/
-	/*width: calc(48rem / 14);*/
-	/*height: calc(32rem / 14);*/
-	background-color: var(--color-bubble-other);
-	border-radius: calc(4rem / 14);
-	cursor: pointer;
-	transition: background-color 0.3s ease-in-out;
-
-	input {
-		position: absolute;
-		opacity: 0;
-		height: 0;
-		width: 0;
-	}
-
-	span {
-		padding: calc(10rem / 14);
-		z-index: 1;
-	}
-
-	.switch-thumb {
-		position: absolute;
-		left: var(--thumb-padding);
-		top: var(--thumb-padding);
-		height: calc(28rem / 14);
-		background-color: var(--color-page);
-		border-radius: calc(4rem / 14);
-		transition: left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-
-		filter: drop-shadow(4px 0 4px var(--color-drop-shadow));
-	}
-
-	input:checked + .switch-thumb {
-		left: calc(var(--thumb-padding) + var(--option-0-width) + var(--gap));
-		filter: drop-shadow(-4px 0 4px var(--color-drop-shadow-intense));
 	}
 }
