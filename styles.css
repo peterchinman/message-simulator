@@ -95,7 +95,7 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 @media (min-width: 900px) {
 	:root {
 		--font-size: 14px;
-		--font-size-small: 9px;
+		--font-size-small: 11px;
 		--padding-inline: 1.5rem;
 		--message-padding-inline: calc(8rem / 14);
 		--message-padding-block: calc(4rem / 14);
@@ -115,20 +115,14 @@ body {
 	overscroll-behavior: none;
 
 	font-family: var(--font-base);
-	background: var(--color-page);
 	color: var(--color-ink);
-
-	display: flex;
-	flex-direction: column;
-	align-items: center;
 }
 
 .app-container {
 	width: 100%;
+	height: 100%;
 	display: grid;
 	grid-template-columns: 1fr;
-
-	height: calc(var(--vh, 1dvh) * 100);
 }
 
 @media (min-width: 900px) {
@@ -178,6 +172,15 @@ body {
 }
 
 @media (min-width: 900px) {
+
+	body {
+		padding: 4dvw;
+	}
+
+	.app-container {
+		gap: 4dvw;
+	}
+
 	/* On large screens, show both panes regardless of mode */
 	.pane--editor {
 		display: block;
@@ -196,10 +199,6 @@ body {
 		pointer-events: auto;
 	}
 
-	.app-container {
-		height: calc(var(--vh, 1dvh) * 100);
-	}
-
 	.pane {
 		min-height: 0;
 		height: 100%;
@@ -210,20 +209,11 @@ body {
 		display: block;
 		min-height: 0;
 		height: 100%;
-	}
+		background: var(--color-page);
 
-	/* Inset / container look for the preview pane */
-	.pane--preview {
-		padding: 4dvw;
-		background: var(--color-edge);
-	}
-
-	.pane--preview chat-preview {
 		border-radius: calc(18rem / 14);
 		overflow: hidden;
 		border: 1px solid var(--color-edge);
-		box-shadow:
-			0 16px 48px var(--color-drop-shadow-intense),
-			0 4px 16px var(--color-drop-shadow);
+		filter: drop-shadow(0 0 16px var(--color-drop-shadow-intense)) drop-shadow(0 0 4px var(--color-drop-shadow));
 	}
 }

@@ -52,7 +52,7 @@ class ChatEditor extends HTMLElement {
 					border-bottom: 1px solid var(--color-edge);
 					-webkit-backdrop-filter: var(--backdrop-filter);
 					backdrop-filter: var(--backdrop-filter);
-					padding-block: 0.5rem;
+					padding-block: 1rem;
 					flex-wrap: nowrap;
 					overflow-x: auto;
 					user-select: none;
