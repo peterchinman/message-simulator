@@ -138,7 +138,7 @@ footer {
 	align-items: center;
 	justify-content: flex-start;
 	padding-inline: 4vw;
-	padding-block: .5rem;
+	padding-block: 0.5rem;
 
 	a {
 		color: var(--color-bubble-self);
