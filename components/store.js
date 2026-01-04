@@ -21,11 +21,13 @@ const DEFAULT_MESSAGES = [
 	},
 	{ message: 'What do I do with it?', sender: 'self' },
 	{
-		message: 'You can type in the input below, or use the edit pane for easy editing.',
+		message:
+			'You can type in the input below, or use the edit pane for easy editing.',
 		sender: 'other',
 	},
 	{
-		message: 'You can export or import the chats to share them. Clear the chat to start over. Toggle the theme between light and dark mode.',
+		message:
+			'You can export or import the chats to share them. Clear the chat to start over. Toggle the theme between light and dark mode.',
 		sender: 'other',
 	},
 	{ message: 'No like, what is it for?', sender: 'self' },
