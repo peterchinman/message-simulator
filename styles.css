@@ -106,6 +106,8 @@ pixel value (x) at that scale, while also being dynamic with rem size.
 
 html {
 	font-size: var(--font-size);
+
+	--pane-gap: calc(36rem / 14);
 }
 
 body {
@@ -121,6 +123,8 @@ body {
 	flex-direction: column;
 }
 
+/* ===== Layout & Responsive Behavior ===== */
+
 .app-container {
 	flex: 1 1 auto;
 	min-height: 0;
@@ -131,13 +135,12 @@ body {
 footer {
 	display: none;
 	background: var(--color-header);
-	/* border-top: 1px solid var(--color-edge); */
 	width: 100%;
 	flex: 0 0 auto;
 	color: var(--color-ink-subdued);
 	align-items: center;
 	justify-content: flex-start;
-	padding-inline: 4vw;
+	padding-inline: var(--pane-gap);
 	padding-block: 0.5rem;
 
 	a {
@@ -145,20 +148,20 @@ footer {
 	}
 }
 
-@media (min-width: 900px) {
-	.app-container {
-		grid-template-columns: 1fr 1fr;
-	}
-
-	footer {
-		display: flex;
-	}
+.pane {
+	min-height: 0;
 }
+
+.pane--threads,
 .pane--editor,
 .pane--preview {
 	min-height: 0;
 }
 
+/* ===== Mobile Layout (<900px) ===== */
+/* Single pane visible, three modes: list, edit, preview */
+
+.pane--threads,
 .pane--editor {
 	display: none;
 }
@@ -167,12 +170,25 @@ footer {
 	display: block;
 }
 
-/* Mode switching - when in edit mode, show editor and hide preview */
+/* List mode: show threads only */
+.app-container[data-mode='list'] .pane--threads {
+	display: block;
+}
+
+.app-container[data-mode='list'] .pane--editor,
+.app-container[data-mode='list'] .pane--preview {
+	visibility: hidden;
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+
+/* Edit mode: show editor only */
 .app-container[data-mode='edit'] .pane--editor {
 	display: block;
 }
 
-/* we don't use display: none so that we can keep the component in the DOM, and prevent recalculation of layout when switching modes */
+.app-container[data-mode='edit'] .pane--threads,
 .app-container[data-mode='edit'] .pane--preview {
 	visibility: hidden;
 	position: absolute;
@@ -180,7 +196,16 @@ footer {
 	pointer-events: none;
 }
 
-/* Mode switching - when in preview mode, show preview and hide editor */
+/* Preview mode (default): show preview only */
+.app-container[data-mode='preview'] .pane--preview,
+.app-container:not([data-mode]) .pane--preview {
+	visibility: visible;
+	position: static;
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.app-container[data-mode='preview'] .pane--threads,
 .app-container[data-mode='preview'] .pane--editor {
 	visibility: hidden;
 	position: absolute;
@@ -188,51 +213,120 @@ footer {
 	pointer-events: none;
 }
 
-.app-container[data-mode='preview'] .pane--preview {
-	visibility: visible;
-	position: static;
-	opacity: 1;
-	pointer-events: auto;
-}
+/* ===== Tablet Layout (900px-1200px) ===== */
+/* Two columns: left pane (threads OR editor) + preview */
 
 @media (min-width: 900px) {
 	.app-container {
-		padding: 4dvw;
-		gap: 4dvw;
+		padding: var(--pane-gap);
+		gap: var(--pane-gap);
+		grid-template-columns: 1fr 1fr;
 	}
 
-	/* On large screens, show both panes regardless of mode */
+	footer {
+		display: flex;
+	}
+
+	/* Left pane shows either threads or editor based on data-left-view */
+	.pane--threads,
 	.pane--editor {
-		display: block;
+		grid-column: 1;
+		grid-row: 1;
 	}
 
 	.pane--preview {
+		grid-column: 2;
+		grid-row: 1;
 		display: block;
-	}
-
-	/* Override narrow-mode hiding rules when transitioning to wide layouts */
-	.app-container[data-mode='edit'] .pane--preview,
-	.app-container[data-mode='preview'] .pane--editor {
 		visibility: visible;
 		position: static;
 		opacity: 1;
 		pointer-events: auto;
 	}
 
-	.pane {
-		min-height: 0;
+	/* Default: show editor in left pane, preview in right */
+	.pane--threads {
+		display: none;
 	}
 
-	.pane--editor chat-editor,
-	.pane--preview chat-preview {
+	.pane--editor {
+		display: block;
+	}
+
+	/* When data-mode="list", show threads in left pane */
+	.app-container[data-mode='list'] .pane--threads {
+		display: block;
+	}
+
+	.app-container[data-mode='list'] .pane--editor {
+		display: none;
+	}
+
+	/* When data-mode="edit", show editor in left pane */
+	.app-container[data-mode='edit'] .pane--editor {
+		display: block;
+	}
+
+	.app-container[data-mode='edit'] .pane--threads {
+		display: none;
+	}
+
+	/* Preview pane always visible on tablet - override mobile mode hiding */
+	.pane--preview,
+	.app-container[data-mode='list'] .pane--preview,
+	.app-container[data-mode='edit'] .pane--preview {
+		display: block;
+		visibility: visible;
+		position: static;
+		opacity: 1;
+		pointer-events: auto;
+	}
+
+	.pane--threads thread-list,
+	.pane--editor thread-editor,
+	.pane--preview thread-preview {
 		display: block;
 		min-height: 0;
 		background: var(--color-page);
-
 		border-radius: calc(18rem / 14);
 		overflow: hidden;
 		border: 1px solid var(--color-edge);
 		filter: drop-shadow(0 0 16px var(--color-drop-shadow-intense))
 			drop-shadow(0 0 4px var(--color-drop-shadow));
+	}
+}
+
+/* ===== Desktop Layout (>1200px) ===== */
+/* Three columns: threads | editor | preview */
+
+@media (min-width: 1200px) {
+	.app-container {
+		grid-template-columns: 1fr 1fr 1fr;
+	}
+
+	/* All three panes visible */
+	.pane--threads {
+		grid-column: 1;
+		grid-row: 1;
+		display: block;
+	}
+
+	.pane--editor {
+		grid-column: 2;
+		grid-row: 1;
+		display: block;
+	}
+
+	.pane--preview {
+		grid-column: 3;
+		grid-row: 1;
+		display: block;
+	}
+
+	/* Override any data-mode settings - show all panes at desktop */
+	.app-container[data-mode='list'] .pane--threads,
+	.app-container[data-mode='list'] .pane--editor,
+	.app-container[data-mode='edit'] .pane--threads {
+		display: block;
 	}
 }

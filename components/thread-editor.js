@@ -3,6 +3,7 @@ import './message-card.js';
 import './icon-arrow.js';
 import { initTooltips } from '../utils/tooltip.js';
 import { html } from '../utils/template.js';
+import { setCurrentThreadId } from '../utils/url-state.js';
 
 class ChatEditor extends HTMLElement {
 	constructor() {
@@ -60,8 +61,16 @@ class ChatEditor extends HTMLElement {
 					z-index: 4;
 				}
 
+				/* Hide Preview arrow at tablet+ (900px+) since preview is always visible */
 				@media (min-width: 900px) {
-					.editor-header icon-arrow[activates-mode='preview'] {
+					.editor-header icon-arrow[reversed] {
+						display: none;
+					}
+				}
+
+				/* Hide Threads arrow at desktop (1200px+) since all panes are visible */
+				@media (min-width: 1200px) {
+					.editor-header icon-arrow:not([reversed]) {
 						display: none;
 					}
 				}
@@ -122,6 +131,7 @@ class ChatEditor extends HTMLElement {
 			</style>
 			<div class="wrapper">
 				<div class="editor-header">
+					<icon-arrow text="Threads" action="show-threads"></icon-arrow>
 					<button id="export-json" data-tooltip="Export chat as JSON">
 						Export
 					</button>
@@ -134,13 +144,25 @@ class ChatEditor extends HTMLElement {
 					<button id="toggle-theme" data-tooltip="Toggle theme">Theme</button>
 					<icon-arrow
 						text="Preview"
-						activates-mode="preview"
+						action="show-preview"
 						reversed
 					></icon-arrow>
 				</div>
 				<div class="cards-list">
 					<div class="info-editor">
-						<div class="title">Info</div>
+						<div class="title">Thread</div>
+						<label>
+							Thread Name (optional)
+							<input
+								id="thread-name"
+								type="text"
+								autocomplete="off"
+								placeholder="Custom name for this thread"
+							/>
+						</label>
+					</div>
+					<div class="info-editor">
+						<div class="title">Recipient</div>
 						<label>
 							Name
 							<input
@@ -179,6 +201,7 @@ class ChatEditor extends HTMLElement {
 
 		const headerEl = this.shadowRoot.querySelector('.editor-header');
 		const cardsListEl = this.shadowRoot.querySelector('.cards-list');
+		const threadNameInput = this.shadowRoot.querySelector('#thread-name');
 		const recipientNameInput = this.shadowRoot.querySelector('#recipient-name');
 		const recipientLocationInput = this.shadowRoot.querySelector(
 			'#recipient-location',
@@ -187,6 +210,7 @@ class ChatEditor extends HTMLElement {
 		this.$ = {
 			headerEl,
 			cardsListEl,
+			threadNameInput,
 			recipientNameInput,
 			recipientLocationInput,
 		};
@@ -203,6 +227,19 @@ class ChatEditor extends HTMLElement {
 			});
 			this._headerObserver.observe(headerEl);
 		}
+
+		const onThreadNameInput = () => {
+			const currentThread = store.getCurrentThread();
+			if (currentThread) {
+				store.updateThreadName(
+					currentThread.id,
+					this.$?.threadNameInput?.value ?? '',
+				);
+			}
+		};
+		this._onThreadNameInput = onThreadNameInput;
+		if (threadNameInput)
+			threadNameInput.addEventListener('input', onThreadNameInput);
 
 		const onRecipientInput = () => {
 			store.updateRecipient({
@@ -267,7 +304,10 @@ class ChatEditor extends HTMLElement {
 				const reader = new FileReader();
 				reader.onload = (ev) => {
 					try {
-						store.importJson(String(ev.target.result));
+						const newThread = store.importJson(String(ev.target.result));
+						if (newThread) {
+							setCurrentThreadId(newThread.id);
+						}
 					} catch (_err) {
 						alert('Error importing chat: Invalid JSON file');
 					} finally {
@@ -278,6 +318,7 @@ class ChatEditor extends HTMLElement {
 			});
 		store.addEventListener('messages:changed', this._onStoreChange);
 		store.load();
+		this.#syncThreadInput(store.getCurrentThread());
 		this.#syncRecipientInputs(store.getRecipient());
 		this.#render(store.getMessages());
 		initTooltips(this.shadowRoot, this);
@@ -293,6 +334,12 @@ class ChatEditor extends HTMLElement {
 		);
 		this.shadowRoot.removeEventListener('focusin', this._onFocusIn, true);
 		store.removeEventListener('messages:changed', this._onStoreChange);
+		if (this.$?.threadNameInput && this._onThreadNameInput) {
+			this.$.threadNameInput.removeEventListener(
+				'input',
+				this._onThreadNameInput,
+			);
+		}
 		if (this.$?.recipientNameInput && this._onRecipientInput) {
 			this.$.recipientNameInput.removeEventListener(
 				'input',
@@ -346,6 +393,27 @@ class ChatEditor extends HTMLElement {
 	_onStoreChange(e) {
 		const { reason, message, messages, recipient } = e.detail || {};
 		if (recipient) this.#syncRecipientInputs(recipient);
+
+		// Handle thread changes - reload everything
+		if (
+			reason === 'thread-changed' ||
+			reason === 'load' ||
+			reason === 'init-defaults'
+		) {
+			const currentThread = store.getCurrentThread();
+			this.#syncThreadInput(currentThread);
+			this.#syncRecipientInputs(store.getRecipient());
+			this.#render(store.getMessages());
+			return;
+		}
+
+		// Handle thread updates (name changes)
+		if (reason === 'thread-updated') {
+			const currentThread = store.getCurrentThread();
+			this.#syncThreadInput(currentThread);
+			return;
+		}
+
 		switch (reason) {
 			case 'add':
 				this.#onAdd(message, messages);
@@ -362,6 +430,21 @@ class ChatEditor extends HTMLElement {
 			default:
 				this.#render(messages);
 				break;
+		}
+	}
+
+	#syncThreadInput(thread) {
+		const threadNameInput = this.$?.threadNameInput;
+		if (!threadNameInput) return;
+		const active = this.shadowRoot && this.shadowRoot.activeElement;
+		const threadName = thread && thread.name ? thread.name : '';
+		const placeholder =
+			thread && thread.recipient
+				? `Chat with ${thread.recipient.name}`
+				: 'Custom name for this thread';
+		threadNameInput.placeholder = placeholder;
+		if (active !== threadNameInput && threadNameInput.value !== threadName) {
+			threadNameInput.value = threadName;
 		}
 	}
 
@@ -400,7 +483,7 @@ class ChatEditor extends HTMLElement {
 		card.classList.add('focused');
 		this._lastFocusedCard = card;
 
-		// Dispatch event to scroll to this message in chat-preview
+		// Dispatch event to scroll to this message in thread-preview
 		const messageId = card.getAttribute('message-id');
 		if (messageId) {
 			this.dispatchEvent(
@@ -588,4 +671,4 @@ class ChatEditor extends HTMLElement {
 	}
 }
 
-customElements.define('chat-editor', ChatEditor);
+customElements.define('thread-editor', ChatEditor);

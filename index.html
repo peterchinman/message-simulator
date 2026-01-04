@@ -71,11 +71,14 @@
 	</head>
 	<body>
 		<main id="app" class="app-container">
+			<section class="pane pane--threads">
+				<thread-list></thread-list>
+			</section>
 			<section class="pane pane--editor">
-				<chat-editor></chat-editor>
+				<thread-editor></thread-editor>
 			</section>
 			<section class="pane pane--preview">
-				<chat-preview></chat-preview>
+				<thread-preview></thread-preview>
 			</section>
 		</main>
 		<footer class="footer">
@@ -90,7 +93,9 @@
 				>.
 			</p>
 		</footer>
-		<script type="module" src="./components/chat-editor.js"></script>
-		<script type="module" src="./components/chat-preview.js"></script>
+		<script type="module" src="./components/thread-list.js"></script>
+		<script type="module" src="./components/thread-editor.js"></script>
+		<script type="module" src="./components/thread-preview.js"></script>
+		<script type="module" src="./app.js"></script>
 	</body>
 </html>

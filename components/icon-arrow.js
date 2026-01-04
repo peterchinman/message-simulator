@@ -3,7 +3,7 @@ import { arrowSvg } from './icons/arrow-svg.js';
 
 class IconArrow extends HTMLElement {
 	static get observedAttributes() {
-		return ['text', 'activates-mode', 'reversed'];
+		return ['text', 'action', 'reversed'];
 	}
 
 	constructor() {
@@ -98,11 +98,16 @@ class IconArrow extends HTMLElement {
 	}
 
 	_onClick() {
-		const mode = this.getAttribute('activates-mode') || 'edit';
-		const appContainer = document.querySelector('.app-container');
-		if (appContainer) {
-			appContainer.setAttribute('data-mode', mode);
-		}
+		const action = this.getAttribute('action');
+
+		// Emit navigation event for app to handle based on viewport
+		this.dispatchEvent(
+			new CustomEvent('navigate', {
+				detail: { action },
+				bubbles: true,
+				composed: true, // allows event to cross shadow DOM boundary
+			}),
+		);
 	}
 }
 

@@ -3,6 +3,7 @@ import './sender-switch.js';
 import './icon-arrow.js';
 import { html } from '../utils/template.js';
 import { arrowSvg } from './icons/arrow-svg.js';
+import { setCurrentThreadId } from '../utils/url-state.js';
 
 /**
  * @typedef {Object} ChatImage
@@ -179,7 +180,7 @@ class ChatPreview extends HTMLElement {
 
 				/* On wide layouts we show editor + preview simultaneously, so hide mode switch */
 				@media (min-width: 900px) {
-					.preview-header icon-arrow[activates-mode='edit'] {
+					.preview-header icon-arrow {
 						display: none;
 					}
 				}
@@ -576,7 +577,7 @@ class ChatPreview extends HTMLElement {
 			</svg>
 			<section class="window">
 				<header class="preview-header">
-					<icon-arrow text="Edit" activates-mode="edit"></icon-arrow>
+					<icon-arrow text="Edit" action="show-editor"></icon-arrow>
 					<div class="recipient-info">
 						<div class="recipient-avatar" aria-hidden="true">
 							<span class="recipient-avatar-text">?</span>
@@ -794,6 +795,19 @@ class ChatPreview extends HTMLElement {
 	_onStoreChange(e) {
 		const { reason, message, messages, recipient } = e.detail || {};
 		if (recipient) this.#renderRecipient(recipient);
+
+		// Handle thread changes - reload everything
+		if (
+			reason === 'thread-changed' ||
+			reason === 'load' ||
+			reason === 'init-defaults'
+		) {
+			this.#renderRecipient(store.getRecipient());
+			this.#renderReset(store.getMessages());
+			this._scrollToBottom();
+			return;
+		}
+
 		switch (reason) {
 			case 'add':
 				this.#renderAdd(message, messages);
@@ -889,7 +903,10 @@ class ChatPreview extends HTMLElement {
 		const reader = new FileReader();
 		reader.onload = (ev) => {
 			try {
-				store.importJson(String(ev.target.result));
+				const newThread = store.importJson(String(ev.target.result));
+				if (newThread) {
+					setCurrentThreadId(newThread.id);
+				}
 			} catch (_err) {
 				alert('Error importing chat: Invalid JSON file');
 			} finally {
@@ -1422,4 +1439,4 @@ class ChatPreview extends HTMLElement {
 	}
 }
 
-customElements.define('chat-preview', ChatPreview);
+customElements.define('thread-preview', ChatPreview);

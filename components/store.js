@@ -1,6 +1,6 @@
-// MessageStore singleton: shared message state, migration, persistence
-const CHAT_STORAGE_KEY = 'message-simulator:messages';
-const CURRENT_SCHEMA_VERSION = 2;
+// ThreadStore: manages multiple message threads with persistence
+const THREADS_STORAGE_KEY = 'message-simulator:threads';
+const CURRENT_SCHEMA_VERSION = 1;
 
 const DEFAULT_RECIPIENT = {
 	name: 'Peter Chinman',
@@ -34,9 +34,9 @@ const DEFAULT_MESSAGES = [
 	{ message: 'Lol idk', sender: 'other' },
 ];
 
-class MessageStore extends EventTarget {
-	#messages = [];
-	#recipient = { ...DEFAULT_RECIPIENT };
+class ThreadStore extends EventTarget {
+	#threads = [];
+	#currentThreadId = null;
 	#saveDebounceId = null;
 
 	constructor() {
@@ -45,30 +45,50 @@ class MessageStore extends EventTarget {
 
 	load() {
 		try {
-			const raw = localStorage.getItem(CHAT_STORAGE_KEY);
+			const raw = localStorage.getItem(THREADS_STORAGE_KEY);
 			if (!raw) {
-				this.#messages = this.#withIdsAndTimestamps(DEFAULT_MESSAGES);
-				this.#recipient = { ...DEFAULT_RECIPIENT };
+				// No threads exist, create default thread
+				const thread = this.#createDefaultThread();
+				this.#threads = [thread];
+				this.#currentThreadId = thread.id;
 				this.save();
 				this.#emitChange('init-defaults');
 				return;
 			}
+
 			const parsed = JSON.parse(raw);
-			const { messages, recipient, migrated } = this.#migrateStoredData(parsed);
-			if (Array.isArray(messages)) {
-				this.#messages = messages;
-				this.#recipient = recipient || { ...DEFAULT_RECIPIENT };
-				if (migrated) this.save();
+			if (
+				parsed &&
+				typeof parsed === 'object' &&
+				parsed.version === CURRENT_SCHEMA_VERSION &&
+				Array.isArray(parsed.threads)
+			) {
+				this.#threads = parsed.threads.filter(this.#isValidThread.bind(this));
+
+				// If no valid threads, create default
+				if (this.#threads.length === 0) {
+					const thread = this.#createDefaultThread();
+					this.#threads = [thread];
+					this.#currentThreadId = thread.id;
+					this.save();
+					this.#emitChange('init-defaults');
+					return;
+				}
+
 				this.#emitChange('load');
 			} else {
-				this.#messages = this.#withIdsAndTimestamps(DEFAULT_MESSAGES);
-				this.#recipient = { ...DEFAULT_RECIPIENT };
+				// Invalid format, create default thread
+				const thread = this.#createDefaultThread();
+				this.#threads = [thread];
+				this.#currentThreadId = thread.id;
 				this.save();
 				this.#emitChange('init-defaults');
 			}
 		} catch (_err) {
-			this.#messages = this.#withIdsAndTimestamps(DEFAULT_MESSAGES);
-			this.#recipient = { ...DEFAULT_RECIPIENT };
+			// Error loading, create default thread
+			const thread = this.#createDefaultThread();
+			this.#threads = [thread];
+			this.#currentThreadId = thread.id;
 			this.save();
 			this.#emitChange('init-defaults');
 		}
@@ -78,26 +98,218 @@ class MessageStore extends EventTarget {
 		try {
 			const payload = {
 				version: CURRENT_SCHEMA_VERSION,
-				messages: this.#messages,
-				recipient: this.#recipient,
+				threads: this.#threads,
 			};
-			localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(payload));
-		} catch (_err) {
-			// swallow
+			localStorage.setItem(THREADS_STORAGE_KEY, JSON.stringify(payload));
+		} catch (err) {
+			// Quota exceeded or other storage error
+			console.error('Failed to save to localStorage:', err);
+			// Emit error event for UI to handle
+			this.dispatchEvent(
+				new CustomEvent('storage:error', {
+					detail: { error: err, operation: 'save' },
+					bubbles: false,
+					composed: false,
+				}),
+			);
 		}
 	}
 
-	getMessages() {
-		return this.#messages.slice();
+	// ===== Thread Management Methods =====
+
+	createThread() {
+		const thread = {
+			id: this.#generateId(),
+			name: undefined, // No custom name initially
+			messages: this.#withIdsAndTimestamps(DEFAULT_MESSAGES),
+			recipient: { ...DEFAULT_RECIPIENT },
+			createdAt: new Date().toISOString(),
+			updatedAt: new Date().toISOString(),
+		};
+		this.#threads.push(thread);
+		this.#scheduleSave();
+		this.#emitChange('thread-created', null, thread.id);
+		return thread;
 	}
 
+	duplicateThread(threadId) {
+		const original = this.#threads.find((t) => t.id === threadId);
+		if (!original) return null;
+
+		const copy = {
+			id: this.#generateId(),
+			name: `${this.getThreadDisplayName(original)} (Copy)`,
+			messages: JSON.parse(JSON.stringify(original.messages)), // Deep clone
+			recipient: { ...original.recipient },
+			createdAt: new Date().toISOString(),
+			updatedAt: new Date().toISOString(),
+		};
+		this.#threads.push(copy);
+		this.#scheduleSave();
+		this.#emitChange('thread-created', null, copy.id);
+		return copy;
+	}
+
+	deleteThread(threadId) {
+		const idx = this.#threads.findIndex((t) => t.id === threadId);
+		if (idx === -1) return false;
+
+		this.#threads.splice(idx, 1);
+
+		// If no threads remain, create a new default thread
+		if (this.#threads.length === 0) {
+			const newThread = this.#createDefaultThread();
+			this.#threads.push(newThread);
+			this.#currentThreadId = newThread.id;
+		} else if (this.#currentThreadId === threadId) {
+			// If we deleted the current thread, switch to another
+			this.#currentThreadId = this.#threads[0].id;
+		}
+
+		this.#scheduleSave();
+		this.#emitChange('thread-deleted', null, threadId);
+		return true;
+	}
+
+	loadThread(threadId) {
+		const thread = this.#threads.find((t) => t.id === threadId);
+		if (!thread) {
+			// Thread doesn't exist, try to load first available thread
+			if (this.#threads.length > 0) {
+				this.#currentThreadId = this.#threads[0].id;
+				this.#emitChange('thread-changed', null, this.#currentThreadId);
+				return this.#threads[0];
+			}
+			// No threads at all, create a default one
+			const newThread = this.createThread();
+			this.#currentThreadId = newThread.id;
+			this.#emitChange('thread-changed', null, this.#currentThreadId);
+			return newThread;
+		}
+
+		this.#currentThreadId = threadId;
+		this.#emitChange('thread-changed', null, threadId);
+		return thread;
+	}
+
+	listThreads() {
+		// Return sorted by updatedAt descending (most recent first)
+		return this.#threads
+			.slice()
+			.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+	}
+
+	getCurrentThread() {
+		if (!this.#currentThreadId) return null;
+		return this.#threads.find((t) => t.id === this.#currentThreadId) || null;
+	}
+
+	updateThreadName(threadId, name) {
+		const thread = this.#threads.find((t) => t.id === threadId);
+		if (!thread) return;
+
+		const trimmedName = String(name ?? '').trim();
+		thread.name = trimmedName.length > 0 ? trimmedName : undefined;
+		thread.updatedAt = new Date().toISOString();
+		this.#scheduleSave();
+		this.#emitChange('thread-updated', null, threadId);
+	}
+
+	getThreadDisplayName(thread) {
+		if (!thread) return '';
+		return thread.name || thread.recipient?.name || 'Unknown';
+	}
+
+	// ===== Message Methods (operate on current thread) =====
+
+	getMessages() {
+		const thread = this.getCurrentThread();
+		if (!thread) return [];
+		return thread.messages.slice();
+	}
+
+	addMessage(afterId) {
+		const thread = this.getCurrentThread();
+		if (!thread) return null;
+
+		const msg = {
+			id: this.#generateId(),
+			sender: 'self',
+			message: '',
+			timestamp: new Date().toISOString(),
+		};
+
+		if (!afterId) {
+			thread.messages.push(msg);
+		} else {
+			const idx = thread.messages.findIndex((m) => m.id === afterId);
+			if (idx === -1) thread.messages.push(msg);
+			else thread.messages.splice(idx + 1, 0, msg);
+		}
+
+		thread.updatedAt = new Date().toISOString();
+		this.#scheduleSave();
+		this.#emitChange('add', msg);
+		return msg;
+	}
+
+	updateMessage(id, patch) {
+		const thread = this.getCurrentThread();
+		if (!thread) return;
+
+		const idx = thread.messages.findIndex((m) => m.id === id);
+		if (idx === -1) return;
+
+		thread.messages[idx] = { ...thread.messages[idx], ...patch };
+		thread.updatedAt = new Date().toISOString();
+		this.#scheduleSave();
+		this.#emitChange('update', thread.messages[idx]);
+	}
+
+	deleteMessage(id) {
+		const thread = this.getCurrentThread();
+		if (!thread) return;
+
+		const idx = thread.messages.findIndex((m) => m.id === id);
+		if (idx === -1) return;
+
+		const removed = thread.messages.splice(idx, 1)[0];
+		thread.updatedAt = new Date().toISOString();
+		this.#scheduleSave();
+		this.#emitChange('delete', removed);
+	}
+
+	insertImage(id, dataUrl) {
+		if (!dataUrl) return;
+		const thread = this.getCurrentThread();
+		if (!thread) return;
+
+		const idx = thread.messages.findIndex((m) => m.id === id);
+		if (idx === -1) return;
+
+		const msg = thread.messages[idx];
+		const images = Array.isArray(msg.images) ? msg.images.slice() : [];
+		images.push({ id: this.#generateId(), src: dataUrl });
+		thread.messages[idx] = { ...msg, images };
+		thread.updatedAt = new Date().toISOString();
+		this.#scheduleSave();
+		this.#emitChange('update', thread.messages[idx]);
+	}
+
+	// ===== Recipient Methods (operate on current thread) =====
+
 	getRecipient() {
-		return { ...this.#recipient };
+		const thread = this.getCurrentThread();
+		if (!thread) return { ...DEFAULT_RECIPIENT };
+		return { ...thread.recipient };
 	}
 
 	updateRecipient(patch) {
 		if (!patch || typeof patch !== 'object') return;
-		const next = { ...this.#recipient };
+		const thread = this.getCurrentThread();
+		if (!thread) return;
+
+		const next = { ...thread.recipient };
 		if (Object.prototype.hasOwnProperty.call(patch, 'name')) {
 			next.name = String(patch.name ?? '').trim();
 		}
@@ -106,75 +318,39 @@ class MessageStore extends EventTarget {
 		}
 
 		if (
-			next.name === this.#recipient.name &&
-			next.location === this.#recipient.location
+			next.name === thread.recipient.name &&
+			next.location === thread.recipient.location
 		)
 			return;
-		this.#recipient = next;
+
+		thread.recipient = next;
+		thread.updatedAt = new Date().toISOString();
 		this.#scheduleSave();
 		this.#emitChange('recipient');
 	}
 
-	addMessage(afterId) {
-		const msg = {
-			id: this.#generateId(),
-			sender: 'self',
-			message: '',
-			timestamp: new Date().toISOString(),
-		};
-		if (!afterId) {
-			this.#messages.push(msg);
-		} else {
-			const idx = this.#messages.findIndex((m) => m.id === afterId);
-			if (idx === -1) this.#messages.push(msg);
-			else this.#messages.splice(idx + 1, 0, msg);
-		}
-		this.#scheduleSave();
-		this.#emitChange('add', msg);
-		return msg;
-	}
-
-	updateMessage(id, patch) {
-		const idx = this.#messages.findIndex((m) => m.id === id);
-		if (idx === -1) return;
-		this.#messages[idx] = { ...this.#messages[idx], ...patch };
-		this.#scheduleSave();
-		this.#emitChange('update', this.#messages[idx]);
-	}
-
-	deleteMessage(id) {
-		const idx = this.#messages.findIndex((m) => m.id === id);
-		if (idx === -1) return;
-		const removed = this.#messages.splice(idx, 1)[0];
-		this.#scheduleSave();
-		this.#emitChange('delete', removed);
-	}
-
-	insertImage(id, dataUrl) {
-		if (!dataUrl) return;
-		const idx = this.#messages.findIndex((m) => m.id === id);
-		if (idx === -1) return;
-		const msg = this.#messages[idx];
-		const images = Array.isArray(msg.images) ? msg.images.slice() : [];
-		images.push({ id: this.#generateId(), src: dataUrl });
-		this.#messages[idx] = { ...msg, images };
-		this.#scheduleSave();
-		this.#emitChange('update', this.#messages[idx]);
-	}
+	// ===== Clear (clears current thread messages) =====
 
 	clear() {
-		// "Clear" resets to the app's initial default chat.
-		this.#messages = this.#withIdsAndTimestamps(DEFAULT_MESSAGES);
-		this.#recipient = { ...DEFAULT_RECIPIENT };
+		const thread = this.getCurrentThread();
+		if (!thread) return;
+
+		thread.messages = this.#withIdsAndTimestamps(DEFAULT_MESSAGES);
+		thread.updatedAt = new Date().toISOString();
 		this.#scheduleSave();
 		this.#emitChange('clear');
 	}
 
+	// ===== Export/Import (current thread only) =====
+
 	exportJson(pretty = true) {
+		const thread = this.getCurrentThread();
+		if (!thread) return '{}';
+
 		const payload = {
 			version: CURRENT_SCHEMA_VERSION,
-			messages: this.#messages,
-			recipient: this.#recipient,
+			messages: thread.messages,
+			recipient: thread.recipient,
 		};
 		return pretty ? JSON.stringify(payload, null, 2) : JSON.stringify(payload);
 	}
@@ -185,8 +361,8 @@ class MessageStore extends EventTarget {
 			parsed = typeof json === 'string' ? JSON.parse(json) : json;
 		} catch (_e) {
 			return console.error('Invalid JSON');
-			// TODO: Handle this error gracefully
 		}
+
 		const importedRecipient =
 			parsed &&
 			typeof parsed === 'object' &&
@@ -194,15 +370,17 @@ class MessageStore extends EventTarget {
 			typeof parsed.recipient === 'object'
 				? parsed.recipient
 				: null;
+
 		let imported = Array.isArray(parsed)
 			? parsed
 			: parsed && Array.isArray(parsed.messages)
 				? parsed.messages
 				: null;
+
 		if (!imported) {
 			return console.error('Invalid format');
-			// TODO: Handle this error gracefully
 		}
+
 		imported = imported
 			.map((m) => {
 				if (m && typeof m.timestamp === 'number') {
@@ -211,19 +389,45 @@ class MessageStore extends EventTarget {
 				return m;
 			})
 			.filter(this.#isValidMessage.bind(this));
+
 		this.#ensureMessageIds(imported);
 		this.#ensureMessageTimestamps(imported);
-		this.#messages = imported;
+
+		// Create a new thread for the imported data
+		const newThread = this.createThread();
+		newThread.messages = imported;
+
 		if (importedRecipient) {
-			const next = { ...this.#recipient };
+			const next = { ...newThread.recipient };
 			if (typeof importedRecipient.name === 'string')
 				next.name = importedRecipient.name.trim();
 			if (typeof importedRecipient.location === 'string')
 				next.location = importedRecipient.location.trim();
-			this.#recipient = next;
+			newThread.recipient = next;
 		}
+
+		newThread.updatedAt = new Date().toISOString();
+
+		// Make the new thread active
+		this.loadThread(newThread.id);
+
 		this.#scheduleSave();
 		this.#emitChange('import');
+
+		return newThread;
+	}
+
+	// ===== Private Methods =====
+
+	#createDefaultThread() {
+		return {
+			id: this.#generateId(),
+			name: undefined,
+			messages: this.#withIdsAndTimestamps(DEFAULT_MESSAGES),
+			recipient: { ...DEFAULT_RECIPIENT },
+			createdAt: new Date().toISOString(),
+			updatedAt: new Date().toISOString(),
+		};
 	}
 
 	#scheduleSave() {
@@ -234,14 +438,18 @@ class MessageStore extends EventTarget {
 		});
 	}
 
-	#emitChange(reason, message = null) {
+	#emitChange(reason, message = null, threadId = null) {
+		const thread = this.getCurrentThread();
 		this.dispatchEvent(
 			new CustomEvent('messages:changed', {
 				detail: {
 					reason,
 					message,
-					messages: this.getMessages(),
-					recipient: this.getRecipient(),
+					messages: thread ? thread.messages.slice() : [],
+					recipient: thread
+						? { ...thread.recipient }
+						: { ...DEFAULT_RECIPIENT },
+					threadId: threadId || this.#currentThreadId,
 				},
 				bubbles: false,
 				composed: false,
@@ -252,7 +460,7 @@ class MessageStore extends EventTarget {
 	#generateId() {
 		try {
 			if (
-				window &&
+				typeof window !== 'undefined' &&
 				window.crypto &&
 				typeof window.crypto.randomUUID === 'function'
 			) {
@@ -260,7 +468,7 @@ class MessageStore extends EventTarget {
 			}
 		} catch (_e) {}
 		return (
-			'msg_' +
+			'id_' +
 			Date.now().toString(36) +
 			'_' +
 			Math.random().toString(36).slice(2, 10)
@@ -277,71 +485,14 @@ class MessageStore extends EventTarget {
 		}));
 	}
 
-	#migrateStoredData(parsed) {
-		let migrated = false;
-		if (
-			parsed &&
-			typeof parsed === 'object' &&
-			parsed.version === CURRENT_SCHEMA_VERSION
-		) {
-			let messages = Array.isArray(parsed.messages) ? parsed.messages : [];
-			let changed = false;
-			const recipientRaw =
-				parsed.recipient && typeof parsed.recipient === 'object'
-					? parsed.recipient
-					: null;
-			const recipient = {
-				name:
-					recipientRaw && typeof recipientRaw.name === 'string'
-						? recipientRaw.name.trim()
-						: DEFAULT_RECIPIENT.name,
-				location:
-					recipientRaw && typeof recipientRaw.location === 'string'
-						? recipientRaw.location.trim()
-						: DEFAULT_RECIPIENT.location,
-			};
-			if (!recipientRaw) changed = true;
-			messages = messages
-				.map((m) => {
-					if (m && typeof m.timestamp === 'number') {
-						changed = true;
-						return { ...m, timestamp: new Date(m.timestamp).toISOString() };
-					}
-					return m;
-				})
-				.filter(this.#isValidMessage.bind(this));
-			if (this.#ensureMessageIds(messages)) changed = true;
-			if (this.#ensureMessageTimestamps(messages)) changed = true;
-			migrated = migrated || changed;
-			return { messages, recipient, migrated };
-		}
-
-		// Migrate schema v1 -> v2 by adding recipient info.
-		if (
-			parsed &&
-			typeof parsed === 'object' &&
-			parsed.version === 1 &&
-			Array.isArray(parsed.messages)
-		) {
-			let messages = parsed.messages;
-			let changed = true;
-			messages = messages
-				.map((m) => {
-					if (m && typeof m.timestamp === 'number') {
-						return { ...m, timestamp: new Date(m.timestamp).toISOString() };
-					}
-					return m;
-				})
-				.filter(this.#isValidMessage.bind(this));
-			if (this.#ensureMessageIds(messages)) changed = true;
-			if (this.#ensureMessageTimestamps(messages)) changed = true;
-			return {
-				messages,
-				recipient: { ...DEFAULT_RECIPIENT },
-				migrated: changed,
-			};
-		}
-		return { messages: null, recipient: null, migrated };
+	#isValidThread(thread) {
+		if (!thread || typeof thread !== 'object') return false;
+		if (typeof thread.id !== 'string' || thread.id.length === 0) return false;
+		if (!Array.isArray(thread.messages)) return false;
+		if (!thread.recipient || typeof thread.recipient !== 'object') return false;
+		if (typeof thread.createdAt !== 'string') return false;
+		if (typeof thread.updatedAt !== 'string') return false;
+		return true;
 	}
 
 	#isValidMessage(item) {
@@ -398,5 +549,5 @@ class MessageStore extends EventTarget {
 	}
 }
 
-const store = new MessageStore();
-export { store, MessageStore, CHAT_STORAGE_KEY, CURRENT_SCHEMA_VERSION };
+const store = new ThreadStore();
+export { store, ThreadStore, THREADS_STORAGE_KEY, CURRENT_SCHEMA_VERSION };
